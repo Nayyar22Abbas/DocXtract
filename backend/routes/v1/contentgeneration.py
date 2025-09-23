@@ -1,14 +1,14 @@
 from fastapi import APIRouter,Request,Form
 import markdown
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse,JSONResponse
 from Services.googlevertexai import contentcreation
 from pydantic import BaseModel
 # from Services.iamge_generation import generate_image
 
 
 router = APIRouter()
-templates = Jinja2Templates(directory="backend/templates")
+templates = Jinja2Templates(directory="templates")
 
 @router.get("/userprompt")
 def get_users(request:Request):
@@ -21,15 +21,17 @@ def get_users(request:Request):
 
 
 
-@router.post("/userprompt",response_class=HTMLResponse)
-def post_user(request:Request,prompt: str=Form(...)):
+@router.post("/userprompt")
+def post_user(prompt: str=Form(...)):
     generatedresult=contentcreation(prompt)
     cleanedresponse=generatedresult.replace("\\n","\n").replace("\\","")
     formattedresponse=markdown.markdown(cleanedresponse)
 
 
    
-    return templates.TemplateResponse("/prompt_form.html", {"request":request,"user_prompt":formattedresponse})
+    return JSONResponse(content={"response":formattedresponse})
+
+
 
 
 

@@ -4,8 +4,12 @@ from pymongo import MongoClient
 
 
 MONGO_URI="mongodb+srv://AhsanAli:221849123@mycluster.tgkmqdz.mongodb.net/DOCxTRACT"
-
-print(MONGO_URI)
 conn=MongoClient(MONGO_URI)
 
 authconn=conn.DOCxTRACT.users
+
+
+
+
+
+
