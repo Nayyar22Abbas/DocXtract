@@ -50,54 +50,48 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
   }
 }
 
-// Signup function - this still needs to call your backend API
+// Signup function - calls FastAPI backend
 export async function signup(credentials: SignupCredentials): Promise<AuthResponse> {
   try {
-    // TODO: Replace with actual backend API call
-    // Example:
-    // const response = await fetch('http://your-backend-api/auth/signup', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({
-    //     name: credentials.name,
-    //     email: credentials.email,
-    //     password: credentials.password
-    //   })
-    // })
-    // 
-    // const data = await response.json()
-    // 
-    // if (response.ok) {
-    //   // After successful signup, automatically sign them in
-    //   const signInResult = await signIn('credentials', {
-    //     email: credentials.email,
-    //     password: credentials.password,
-    //     redirect: false,
-    //   })
-    //   
-    //   return {
-    //     success: !signInResult?.error,
-    //     message: signInResult?.error ? 'Signup successful but login failed' : 'Account created and logged in successfully',
-    //     user: data.user
-    //   }
-    // }
-    // 
-    // return {
-    //   success: false,
-    //   message: data.message || 'Signup failed'
-    // }
-
-    console.log('Signup attempt:', credentials)
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000'
     
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // Mock response - REPLACE WITH ACTUAL API CALL
+    // Call FastAPI signup endpoint
+    const response = await fetch(`${apiBase}/authuser/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: credentials.email, // Backend expects username, we use email
+        password: credentials.password
+      })
+    })
+    
+    const data = await response.json()
+    
+    if (response.ok) {
+      // After successful signup, automatically sign them in
+      const signInResult = await signIn('credentials', {
+        email: credentials.email,
+        password: credentials.password,
+        redirect: false,
+      })
+      
+      return {
+        success: !signInResult?.error,
+        message: signInResult?.error ? 'Signup successful but login failed' : 'Account created and logged in successfully',
+        user: {
+          id: 'temp-id',
+          name: credentials.name,
+          email: credentials.email
+        }
+      }
+    }
+    
     return {
       success: false,
-      message: 'Signup not implemented yet - please connect to your backend API',
+      message: data.detail || 'Signup failed'
     }
   } catch (error) {
+    console.error('Signup error:', error)
     return {
       success: false,
       message: 'An error occurred during signup',

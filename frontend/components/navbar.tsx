@@ -3,8 +3,18 @@ import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/lib/providers/auth-provider"
+import { useRouter } from "next/navigation"
 
 export function Navbar() {
+  const { isAuthenticated, username, logout } = useAuth()
+  const router = useRouter()
+
+  const handleLogout = () => {
+    logout()
+    router.push('/')
+  }
+
   return (
     <motion.nav
       initial={{ y: -100, opacity: 0 }}
@@ -30,23 +40,36 @@ export function Navbar() {
           <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Home
           </Link>
-          <Link
-            href="/dashboard"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Dashboard
-          </Link>
+          {isAuthenticated && (
+            <Link
+              href="/dashboard"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Dashboard
+            </Link>
+          )}
         </div>
 
         {/* Right side actions */}
         <div className="flex items-center space-x-2">
           <div className="hidden sm:flex items-center space-x-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/login">Login</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/signup">Sign Up</Link>
-            </Button>
+            {isAuthenticated ? (
+              <>
+                <span className="text-sm text-muted-foreground">Hello, {username}</span>
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/login">Login</Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link href="/signup">Sign Up</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
