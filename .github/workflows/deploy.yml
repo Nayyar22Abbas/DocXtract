@@ -1,9 +1,12 @@
-name: Deploy to EC2
+name: Deploy Backend to EC2
 
 on:
   push:
     branches:
-      - main   # only deploy when code is pushed to main
+      - main
+    paths:
+      - 'backend/**'    # only trigger when files inside backend/ change
+      - '.github/workflows/deploy.yml'   # also run if this workflow file changes
 
 jobs:
   deploy:
