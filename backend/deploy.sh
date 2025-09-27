@@ -9,7 +9,7 @@ git fetch origin
 git reset --hard origin/main
 
 echo "🐳 Rebuilding and restarting containers..."
-docker-compose down
-docker-compose up -d --build
+sudo docker-compose down
+sudo docker-compose up -d --build
 
 echo "✅ Deployment complete!"
