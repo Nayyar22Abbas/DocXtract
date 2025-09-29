@@ -8,7 +8,6 @@ git fetch origin
 git reset --hard origin/main
 
 echo "🐳 Rebuilding and restarting containers..."
-docker rm -f docxtract-backend || true
 docker-compose down || true
 docker-compose up -d --build
 
