@@ -1,15 +1,15 @@
 #!/bin/bash
-set -e  # stop if any command fails
+set -e
 
 echo "📥 Pulling latest code from GitHub..."
 cd ~/DocXtract/DocXtract/backend
 
-# Always reset local code to match GitHub main branch
 git fetch origin
 git reset --hard origin/main
 
 echo "🐳 Rebuilding and restarting containers..."
-sudo docker-compose down
+sudo docker-compose down || true
 sudo docker-compose up -d --build
 
 echo "✅ Deployment complete!"
+
