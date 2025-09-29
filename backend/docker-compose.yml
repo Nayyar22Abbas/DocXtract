@@ -11,17 +11,3 @@ services:
       - MONGO_URI=${MONGO_URI}
     volumes:
       - .:/app
-      
- frontend:
-    build:
-      context: ../frontend
-    container_name: docxtract-frontend
-    ports:
-      - "3000:80"
-
-  mongo:
-    image: mongo:6
-    container_name: docxtract-mongo
-    restart: always
-    ports:
-      - "27017:27017"
