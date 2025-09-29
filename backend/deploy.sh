@@ -8,8 +8,8 @@ git fetch origin
 git reset --hard origin/main
 
 echo "🐳 Rebuilding and restarting containers..."
-docker-compose down || true
-docker-compose up -d --build
+sudo docker-compose down || true
+sudo docker-compose up -d --build
 
 echo "✅ Deployment complete!"
 
