@@ -8,8 +8,9 @@ git fetch origin
 git reset --hard origin/main
 
 echo "🐳 Rebuilding and restarting containers..."
-sudo docker-compose down || true
-sudo docker-compose up -d --build
+docker rm -f docxtract-backend || true
+docker-compose down || true
+docker-compose up -d --build
 
 echo "✅ Deployment complete!"
 
