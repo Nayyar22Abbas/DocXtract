@@ -23,5 +23,5 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ~/DocXtract/DocXtract/backend
+            cd ~/DocXtract/backend
             ./deploy.sh
