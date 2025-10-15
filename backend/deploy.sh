@@ -2,7 +2,7 @@
 set -e
 
 echo "📥 Pulling latest code from GitHub..."
-cd ~/DocXtract/DocXtract/backend
+cd ~/DocXtract/backend
 
 git fetch origin
 git reset --hard origin/main
