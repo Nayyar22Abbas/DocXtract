@@ -7,7 +7,13 @@ MONGO_URI="mongodb+srv://AhsanAli:221849123@mycluster.tgkmqdz.mongodb.net/DOCxTR
 conn=MongoClient(MONGO_URI)
 
 authconn=conn.DOCxTRACT.users
+pdfconn = conn.DOCxTRACT.pdf_files
 
+
+# later motor will be used to support the  async operations
+
+# async_conn=AsyncIOMotorClient(MONGO_URI)  
+# authconn=async_conn.DOCxTRACT.users
 
 
 
