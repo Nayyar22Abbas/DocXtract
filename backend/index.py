@@ -12,6 +12,7 @@ from routes.v1.showlistpdf import listpdf
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from routes.v1.deletepdf import deletepdf
+from routes.v1.pdfcomparison import pdfcompare
 import os
 
 
@@ -53,6 +54,7 @@ app.include_router(pdfdownload,prefix="/pdfdownload", tags=["pdf"])
 app.include_router(listpdf,prefix="/list", tags=["pdf"])
 app.include_router(pdfchat,prefix="/pdfchat", tags=["pdf"])
 app.include_router(deletepdf,prefix="/deletepdf", tags=["pdf"])
+app.include_router(pdfcompare,prefix="/ppdfcomparison", tags=["pdf comparison"])
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
 
 
