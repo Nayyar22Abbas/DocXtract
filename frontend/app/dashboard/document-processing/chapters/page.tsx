@@ -1,12 +1,12 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useDocuments } from '@/lib/providers/document-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, BookOpen } from 'lucide-react'
+import { ArrowLeft, BookOpen, Loader2 } from 'lucide-react'
 import { API_BASE, authHeaders, getUsername } from '@/lib/api/auth'
 
 interface ChapterSummaries {
@@ -18,6 +18,8 @@ export default function ChaptersPage() {
   const searchParams = useSearchParams()
   const { documents, getFileForDoc } = useDocuments()
 
+  const hasRequestedRef = useRef(false)
+
   const doc1Id = searchParams.get('doc1')
   const doc1 = documents.find((d) => d.id === doc1Id)
 
@@ -28,6 +30,9 @@ export default function ChaptersPage() {
   useEffect(() => {
     const run = async () => {
       if (!doc1Id || !doc1) return
+
+      if (hasRequestedRef.current) return
+      hasRequestedRef.current = true
 
       const file = getFileForDoc(doc1Id)
       if (!file) {
@@ -121,7 +126,12 @@ export default function ChaptersPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {isLoading && (
-                  <p className="text-sm text-muted-foreground">Generating chapter summaries...</p>
+                  <div className="flex flex-col items-center gap-2 py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <p className="text-xs text-muted-foreground text-center">
+                      Generating chapter-wise summaries... this can take longer for large or multi-chapter PDFs.
+                    </p>
+                  </div>
                 )}
 
                 {error && (

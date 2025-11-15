@@ -37,27 +37,47 @@ export default function QAPage() {
     setIsLoading(true)
 
     try {
+      // NOTE: Backend defines `question: str = Body(...)`, so it expects a raw JSON string,
+      // not an object like { "question": "..." }. We send the plain JSON string here.
       const res = await fetch(`${API_BASE}/pdfchat/chat-pdf/${doc1.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...authHeaders(),
         },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify(question),
       })
 
-      const data = await res.json().catch(() => ({}))
+      const data = await res.json().catch(() => ({})) as any
+
+      const extractErrorMessage = (d: any): string => {
+        const detail = d?.detail
+        if (typeof detail === 'string') return detail
+        if (Array.isArray(detail)) {
+          const msgs = detail
+            .map((item) => (typeof item?.msg === 'string' ? item.msg : JSON.stringify(item)))
+            .join('; ')
+          return msgs || 'Failed to get answer from server'
+        }
+        if (detail && typeof detail === 'object') {
+          if (typeof detail.msg === 'string') return detail.msg
+          return JSON.stringify(detail)
+        }
+        return 'Failed to get answer from server'
+      }
 
       if (!res.ok) {
-        setError(data.detail || 'Failed to get answer from server')
+        setError(extractErrorMessage(data))
         return
       }
 
-      const answer: string | undefined = data.answer
-      if (!answer) {
+      const answerRaw = (data as any).answer
+      if (answerRaw == null) {
         setError('Server did not return an answer')
         return
       }
+
+      const answer = typeof answerRaw === 'string' ? answerRaw : JSON.stringify(answerRaw)
 
       setMessages((prev) => [...prev, { role: 'assistant', text: answer }])
     } catch (err) {
