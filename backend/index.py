@@ -11,6 +11,7 @@ from routes.v1.chatwithpdf import pdfchat
 from routes.v1.showlistpdf import listpdf
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
+from routes.v1.deletepdf import deletepdf
 import os
 
 
@@ -21,8 +22,9 @@ app= FastAPI()
 
 
 origins=[
-    "http://localhost:3000",  # Replace with your Next.js frontend's URL
-    "http://localhost",  
+    "http://localhost:3000",  
+    "http://localhost",
+    "https://doc-xtract-frontend.vercel.app/"  
 
 
 ]
@@ -50,6 +52,7 @@ app.include_router(chapterwisesum,prefix="/chaptersum", tags=["chapterwise Summa
 app.include_router(pdfdownload,prefix="/pdfdownload", tags=["pdf"])
 app.include_router(listpdf,prefix="/list", tags=["pdf"])
 app.include_router(pdfchat,prefix="/pdfchat", tags=["pdf"])
+app.include_router(deletepdf,prefix="/deletepdf", tags=["pdf"])
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
 
 
