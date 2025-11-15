@@ -6,6 +6,7 @@ from fastapi import APIRouter,Request
 from fastapi.responses import HTMLResponse,RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 from models.authmodel import UserCreate, UserLogin, Token
 from config.db import authconn
 import os
@@ -15,6 +16,8 @@ from utilities.utils import hash_password, verify_password, create_access_token
 
 authuser=APIRouter()
 load_dotenv()
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 templates = Jinja2Templates(directory="templates")
 
@@ -124,10 +127,8 @@ async def auth_google(request:Request):
 
         access_token=create_access_token(data={"sub":email})
 
-        # redirect_url = f"/authuser/dashboard?token={access_token}"
-        # return RedirectResponse(url=redirect_url) #type:ignore
-       
-        return{"access_token":access_token,"token_type":"bearer"}
+        redirect_url = f"{FRONTEND_URL}/oauth/callback?token={access_token}&provider=google"
+        return RedirectResponse(url=redirect_url)
  
    
 
@@ -169,10 +170,8 @@ async def auth_github(request:Request):
 
      access_token=create_access_token(data={"sub":email})
 
-    #  redirect_url = f"/authuser/dashboard?token={access_token}"
-    #  return RedirectResponse(url=redirect_url)  #type:ignore
-
-     return {"access_token":access_token,"token_type":"bearer"}
+     redirect_url = f"{FRONTEND_URL}/oauth/callback?token={access_token}&provider=github"
+     return RedirectResponse(url=redirect_url)
 
 
 

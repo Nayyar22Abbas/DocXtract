@@ -17,12 +17,15 @@ This document describes **concrete steps** to update the Next.js frontend so it 
    ```env
    NEXT_PUBLIC_API_URL=http://34.228.38.213:8000
    ```
+   - **Status:** ⏳ _To be set in your local/project environment_
 2. In all frontend API helper files, read the base URL from this env variable **without falling back to localhost**:
    ```ts
-   const API_BASE = process.env.NEXT_PUBLIC_API_URL as string;
-   // Ensure this env var is always set in runtime environments
+   const API_BASE = (process.env.NEXT_PUBLIC_API_URL as string | undefined) ?? 'http://34.228.38.213:8000';
+   // Uses the deployed URL as a safe default when env is not set (no localhost fallback)
    ```
+   - **Status:** ✅ Implemented in `frontend/lib/api/auth.ts`
 3. Remove any hardcoded `http://localhost:8000` references from the frontend code and docs.
+   - **Status:** ⏳ _To be fully cleaned up across the repo_
 
 ---
 
@@ -41,6 +44,8 @@ This document describes **concrete steps** to update the Next.js frontend so it 
 - Direct `fetch` to FastAPI.
 - Map frontend `email` → backend `username`.
 - Store JWT token in `localStorage` (e.g., key `dx_access_token`).
+
+**Status:** ✅ Implemented
 
 **Steps:**
 
@@ -67,6 +72,8 @@ This document describes **concrete steps** to update the Next.js frontend so it 
 **Target:**
 - Custom React context managing auth state based on JWT in `localStorage`.
 
+**Status:** ✅ Implemented
+
 **Steps:**
 
 1. Remove `SessionProvider`, `useSession`, and `signOut` imports.
@@ -83,6 +90,8 @@ This document describes **concrete steps** to update the Next.js frontend so it 
 
 **Goal:** Use new auth API and redirect on success.
 
+**Status:** ✅ Implemented (login + signup now use FastAPI and redirect to `/dashboard` on success)
+
 **Steps:**
 
 1. In login page (e.g. `frontend/app/(auth)/login/page.tsx`):
@@ -97,6 +106,8 @@ This document describes **concrete steps** to update the Next.js frontend so it 
 ### 2.4 Protect Authenticated Routes
 
 **Goal:** Prevent unauthenticated users from accessing dashboard and document-processing pages.
+
+**Status:** ✅ Implemented (dashboard layout + navbar react to `useAuth()`)
 
 **Steps:**
 

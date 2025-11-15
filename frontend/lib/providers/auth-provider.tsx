@@ -1,37 +1,69 @@
 'use client'
 
-import { createContext, useContext } from 'react'
-import { SessionProvider, useSession, signOut } from 'next-auth/react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { clearAuth, getToken, getDisplayName } from '@/lib/api/auth'
 
 interface AuthContextType {
   isAuthenticated: boolean
+  isReady: boolean
   username?: string
-  logout: () => Promise<void>
+  logout: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 function AuthContextProvider({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession()
-  
-  const isAuthenticated = status === 'authenticated'
-  const username = session?.user?.name || session?.user?.email
-  
-  const logout = async () => {
-    await signOut({ redirect: false })
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isReady, setIsReady] = useState(false)
+  const [username, setUsername] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    const syncAuthState = () => {
+      const token = getToken()
+      const displayName = getDisplayName()
+      setIsAuthenticated(!!token)
+      setUsername(displayName || undefined)
+      setIsReady(true)
+    }
+
+    syncAuthState()
+
+    if (typeof window !== 'undefined') {
+      const handleStorage = (event: StorageEvent) => {
+        if (event.key === null || event.key === 'dx_access_token' || event.key === 'dx_username') {
+          syncAuthState()
+        }
+      }
+
+      const handleAuthChanged = () => {
+        syncAuthState()
+      }
+
+      window.addEventListener('storage', handleStorage)
+      window.addEventListener('dx-auth-changed', handleAuthChanged as EventListener)
+
+      return () => {
+        window.removeEventListener('storage', handleStorage)
+        window.removeEventListener('dx-auth-changed', handleAuthChanged as EventListener)
+      }
+    }
+  }, [])
+
+  const logout = () => {
+    clearAuth()
+    setIsAuthenticated(false)
+    setUsername(undefined)
+    setIsReady(true)
   }
 
-  const value = {
+  const value: AuthContextType = {
     isAuthenticated,
+    isReady,
     username,
     logout,
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function AuthProvider({
@@ -39,13 +71,7 @@ export function AuthProvider({
 }: {
   children: React.ReactNode
 }) {
-  return (
-    <SessionProvider>
-      <AuthContextProvider>
-        {children}
-      </AuthContextProvider>
-    </SessionProvider>
-  )
+  return <AuthContextProvider>{children}</AuthContextProvider>
 }
 
 export function useAuth(): AuthContextType {
