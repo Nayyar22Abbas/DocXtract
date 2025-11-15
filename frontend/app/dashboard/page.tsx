@@ -1,10 +1,14 @@
 "use client"
 
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { FileText, Upload, BarChart3, Activity } from "lucide-react"
+import { FileText, Upload, BarChart3, Activity, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { FuturisticBackground } from "@/components/futuristic-background"
+import { DocumentUpload } from "@/components/document-upload"
+import { useDocuments } from "@/lib/providers/document-provider"
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -21,6 +25,31 @@ const staggerContainer = {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const { documents, addDocument, getDocumentCount } = useDocuments()
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+
+  const handleFileSelected = async (file: File) => {
+    setSelectedFile(file)
+    setIsProcessing(true)
+    try {
+      const success = addDocument(file)
+      if (success) {
+        console.log("Document added:", file.name)
+        await new Promise(resolve => setTimeout(resolve, 500))
+        router.push("/dashboard/document-processing")
+      } else {
+        alert("Cannot add more than 5 documents. Please delete one first.")
+        setSelectedFile(null)
+      }
+    } catch (error) {
+      console.error("Error processing document:", error)
+      setSelectedFile(null)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
   return (
     <div className="min-h-screen relative">
       <FuturisticBackground />
@@ -56,19 +85,21 @@ export default function DashboardPage() {
                 </CardTitle>
                 <CardDescription>Drag and drop your documents or click to browse</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="border-2 border-dashed border-primary/20 rounded-lg p-12 text-center space-y-4 hover:border-primary/40 transition-colors">
-                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Upload className="h-8 w-8 text-primary" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">Upload your first document</h3>
-                    <p className="text-muted-foreground">Support for PDF, PNG, JPG, and more formats</p>
-                  </div>
-                  <Button size="lg" className="mt-4">
-                    Choose Files
+              <CardContent className="space-y-4">
+                <DocumentUpload 
+                  onFileSelected={handleFileSelected}
+                  isLoading={isProcessing}
+                />
+                {getDocumentCount() > 0 && (
+                  <Button 
+                    onClick={() => router.push("/dashboard/document-processing")} 
+                    className="w-full gap-2"
+                    variant="outline"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    Go to Document Processing
                   </Button>
-                </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>

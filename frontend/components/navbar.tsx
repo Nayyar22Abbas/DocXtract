@@ -4,11 +4,12 @@ import Image from "next/image"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/providers/auth-provider"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 
 export function Navbar() {
   const { isAuthenticated, username, logout } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
 
   const handleLogout = () => {
     logout()
@@ -24,29 +25,46 @@ export function Navbar() {
     >
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2">
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex items-center space-x-2">
-            <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-primary/10">
-              <Image src="/logo-placeholder.jpg" alt="DocXtract Logo" fill className="object-cover" />
+        <Link href="/" className="flex items-center -my-8">
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <div className="relative h-24 w-24 mt-16 overflow-visible rounded-lg">
+              <Image src="/logo.png" alt="DocXtract Logo" width={96} height={96} className="object-contain" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              DocXtract
-            </span>
           </motion.div>
         </Link>
 
         {/* Navigation Links */}
         <div className="hidden md:flex items-center space-x-6">
-          <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <Link href="/" className={`text-base font-bold transition-colors ${
+            pathname === '/' 
+              ? 'text-primary border-b-2 border-primary' 
+              : 'text-foreground/70 hover:text-foreground'
+          }`}>
             Home
           </Link>
           {isAuthenticated && (
-            <Link
-              href="/dashboard"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Dashboard
-            </Link>
+            <>
+              <Link
+                href="/dashboard"
+                className={`text-base font-bold transition-colors ${
+                  pathname === '/dashboard' || pathname.startsWith('/dashboard') && !pathname.includes('document-processing')
+                    ? 'text-primary border-b-2 border-primary' 
+                    : 'text-foreground/70 hover:text-foreground'
+                }`}
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/dashboard/document-processing"
+                className={`text-base font-bold transition-colors ${
+                  pathname.includes('/dashboard/document-processing')
+                    ? 'text-primary border-b-2 border-primary' 
+                    : 'text-foreground/70 hover:text-foreground'
+                }`}
+              >
+                Document Processing
+              </Link>
+            </>
           )}
         </div>
 
@@ -55,7 +73,7 @@ export function Navbar() {
           <div className="hidden sm:flex items-center space-x-2">
             {isAuthenticated ? (
               <>
-                <span className="text-sm text-muted-foreground">Hello, {username}</span>
+                <span className="text-base font-bold text-foreground/70">Hello, {username}</span>
                 <Button variant="ghost" size="sm" onClick={handleLogout}>
                   Logout
                 </Button>

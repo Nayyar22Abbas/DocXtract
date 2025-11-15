@@ -6,14 +6,12 @@ import { motion } from "framer-motion"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Eye, EyeOff, Github, Mail, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { FuturisticBackground } from "@/components/futuristic-background"
-import { signup, loginWithGoogle, loginWithGitHub } from "@/lib/api/auth"
+import { signup } from "@/lib/api/auth"
 
 const signupSchema = z
   .object({
@@ -64,24 +62,12 @@ export default function SignupPage() {
     }
   }
 
-  const handleOAuthSignup = async (provider: "google" | "github") => {
-    setIsLoading(true)
+  const handleTestCredentials = () => {
     setError("")
-
-    try {
-      const result = provider === "google" ? await loginWithGoogle() : await loginWithGitHub()
-
-      if (result.success) {
-        window.location.href = "/dashboard"
-      } else {
-        setError(result.message || `${provider} signup failed`)
-      }
-    } catch (err) {
-      setError("OAuth signup failed")
-    } finally {
-      setIsLoading(false)
-    }
+    // Show the test credentials info
+    setError("Use these test credentials to login:\n- Email: test@example.com\n- Password: password123\n\nOr email: demo@docxtract.com with password: demo123456")
   }
+
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
@@ -95,10 +81,30 @@ export default function SignupPage() {
       >
         <Card className="glass-effect border-primary/20">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold">Create account</CardTitle>
-            <CardDescription>Get started with DocXtract today</CardDescription>
+            <CardTitle className="text-2xl font-bold">Demo Account Information</CardTitle>
+            <CardDescription>Frontend-only demonstration mode</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-4 text-sm bg-blue-500/10 border border-blue-500/20 rounded-md space-y-3"
+            >
+              <p className="font-semibold text-blue-700 dark:text-blue-400">🔧 Signup Disabled</p>
+              <p className="text-sm">Signup is not available in this demo version. Please use one of the test credentials below to login:</p>
+              <div className="space-y-2 mt-3 pt-3 border-t border-blue-500/20">
+                <div>
+                  <p className="text-xs font-mono bg-black/20 p-2 rounded">Email: test@example.com</p>
+                  <p className="text-xs font-mono bg-black/20 p-2 rounded mt-1">Password: password123</p>
+                </div>
+                <p className="text-xs text-muted-foreground text-center">— OR —</p>
+                <div>
+                  <p className="text-xs font-mono bg-black/20 p-2 rounded">Email: demo@docxtract.com</p>
+                  <p className="text-xs font-mono bg-black/20 p-2 rounded mt-1">Password: demo123456</p>
+                </div>
+              </div>
+            </motion.div>
+
             {error && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -109,145 +115,17 @@ export default function SignupPage() {
               </motion.div>
             )}
 
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter your full name" {...field} className="h-11" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="Enter your email" {...field} className="h-11" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Create a password"
-                            {...field}
-                            className="h-11 pr-10"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showConfirmPassword ? "text" : "password"}
-                            placeholder="Confirm your password"
-                            {...field}
-                            className="h-11 pr-10"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          >
-                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating account...
-                    </>
-                  ) : (
-                    "Create Account"
-                  )}
-                </Button>
-              </form>
-            </Form>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                onClick={() => handleOAuthSignup("google")}
-                disabled={isLoading}
-                className="h-11"
-              >
-                <Mail className="mr-2 h-4 w-4" />
-                Google
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleOAuthSignup("github")}
-                disabled={isLoading}
-                className="h-11"
-              >
-                <Github className="mr-2 h-4 w-4" />
-                GitHub
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                This is a frontend-only demo. To access the application, please log in with one of the test credentials shown above.
+              </p>
+              <Button className="w-full h-11" asChild>
+                <Link href="/login">
+                  <span>Go to Login</span>
+                </Link>
               </Button>
             </div>
 
-            <div className="text-center text-sm">
-              <span className="text-muted-foreground">Already have an account? </span>
-              <Link href="/login" className="text-primary hover:underline font-medium">
-                Sign in
-              </Link>
-            </div>
           </CardContent>
         </Card>
       </motion.div>

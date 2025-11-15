@@ -1,7 +1,19 @@
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import GoogleProvider from 'next-auth/providers/google'
-import GitHubProvider from 'next-auth/providers/github'
+
+// Frontend-only dummy credentials
+const DUMMY_CREDENTIALS = [
+  {
+    email: 'test@example.com',
+    password: 'password123',
+    name: 'Test User'
+  },
+  {
+    email: 'demo@docxtract.com',
+    password: 'demo123456',
+    name: 'Demo Account'
+  }
+]
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,69 +28,33 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        try {
-          const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000'
-          
-          const response = await fetch(`${apiBase}/authuser/login`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              username: credentials.email, // Backend expects username, we use email
-              password: credentials.password,
-            }),
-          })
+        // Validate against dummy credentials only - NO BACKEND INTEGRATION
+        const user = DUMMY_CREDENTIALS.find(
+          cred => cred.email === credentials.email && cred.password === credentials.password
+        )
 
-          if (!response.ok) {
-            return null
+        if (user) {
+          return {
+            id: user.email,
+            email: user.email,
+            name: user.name,
+            accessToken: 'frontend-demo-token-' + Date.now(),
           }
-
-          const data = await response.json()
-
-          if (data.access_token) {
-            return {
-              id: credentials.email,
-              email: credentials.email,
-              name: credentials.email.split('@')[0], // Use part before @ as name
-              accessToken: data.access_token,
-            }
-          }
-
-          return null
-        } catch (error) {
-          console.error('Auth error:', error)
-          return null
         }
+
+        return null
       },
-    }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-    }),
-    GitHubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID || '',
-      clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
     }),
   ],
   pages: {
     signIn: '/login',
-    signUp: '/signup',
   },
   callbacks: {
-    async jwt({ token, user, account }) {
-      // Store the access token and refresh token in the JWT on the initial login
-      if (user && account) {
-        if (account.provider === 'credentials') {
-          // For credentials login, store FastAPI JWT token
-          token.accessToken = (user as any).accessToken
-        } else {
-          // For OAuth providers, handle tokens from Google/GitHub
-          token.accessToken = account.access_token
-          token.refreshToken = account.refresh_token
-        }
+    async jwt({ token, user }) {
+      // Store the access token in the JWT on login
+      if (user) {
+        token.accessToken = (user as any).accessToken
       }
-
       return token
     },
     async session({ session, token }) {

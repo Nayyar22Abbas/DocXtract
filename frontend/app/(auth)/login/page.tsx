@@ -2,18 +2,19 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Eye, EyeOff, Github, Mail, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { FuturisticBackground } from "@/components/futuristic-background"
-import { login, loginWithGoogle, loginWithGitHub } from "@/lib/api/auth"
+import { login } from "@/lib/api/auth"
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -23,6 +24,7 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -42,8 +44,8 @@ export default function LoginPage() {
     try {
       const result = await login(data)
       if (result.success) {
-        // Redirect to dashboard or handle success
-        window.location.href = "/dashboard"
+        // Use router.push to properly update session state
+        router.push("/dashboard")
       } else {
         setError(result.message || "Login failed")
       }
@@ -54,24 +56,6 @@ export default function LoginPage() {
     }
   }
 
-  const handleOAuthLogin = async (provider: "google" | "github") => {
-    setIsLoading(true)
-    setError("")
-
-    try {
-      const result = provider === "google" ? await loginWithGoogle() : await loginWithGitHub()
-
-      if (result.success) {
-        window.location.href = "/dashboard"
-      } else {
-        setError(result.message || `${provider} login failed`)
-      }
-    } catch (err) {
-      setError("OAuth login failed")
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
@@ -158,35 +142,6 @@ export default function LoginPage() {
               </form>
             </Form>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                onClick={() => handleOAuthLogin("google")}
-                disabled={isLoading}
-                className="h-11"
-              >
-                <Mail className="mr-2 h-4 w-4" />
-                Google
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleOAuthLogin("github")}
-                disabled={isLoading}
-                className="h-11"
-              >
-                <Github className="mr-2 h-4 w-4" />
-                GitHub
-              </Button>
-            </div>
 
             <div className="text-center text-sm">
               <span className="text-muted-foreground">Don't have an account? </span>
