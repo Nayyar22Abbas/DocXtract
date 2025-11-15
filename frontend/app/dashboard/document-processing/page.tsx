@@ -98,7 +98,7 @@ export default function DocumentProcessingPage() {
                   </div>
                 )}
 
-                {documents.length > 0 && documents.length < 5 && (
+                {documents.length > 0 && (
                   <Button
                     onClick={() => router.push('/dashboard')}
                     variant="outline"
@@ -107,12 +107,6 @@ export default function DocumentProcessingPage() {
                     <Upload className="h-4 w-4 mr-2" />
                     Upload More
                   </Button>
-                )}
-
-                {documents.length === 5 && (
-                  <p className="text-xs text-amber-600 text-center">
-                    Maximum 5 documents reached. Delete one to upload more.
-                  </p>
                 )}
               </div>
             </CardContent>

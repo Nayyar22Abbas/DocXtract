@@ -1,11 +1,18 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useDocuments } from '@/lib/providers/document-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, MessageSquare } from 'lucide-react'
+import { ArrowLeft, MessageSquare, Loader2 } from 'lucide-react'
+import { API_BASE, authHeaders } from '@/lib/api/auth'
+
+interface ChatMessage {
+  role: 'user' | 'assistant'
+  text: string
+}
 
 export default function QAPage() {
   const router = useRouter()
@@ -14,6 +21,51 @@ export default function QAPage() {
   
   const doc1Id = searchParams.get('doc1')
   const doc1 = documents.find(d => d.id === doc1Id)
+
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [input, setInput] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleAsk = async () => {
+    if (!doc1 || !input.trim() || isLoading) return
+
+    const question = input.trim()
+    setInput('')
+    setError(null)
+    setMessages((prev) => [...prev, { role: 'user', text: question }])
+    setIsLoading(true)
+
+    try {
+      const res = await fetch(`${API_BASE}/pdfchat/chat-pdf/${doc1.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders(),
+        },
+        body: JSON.stringify({ question }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        setError(data.detail || 'Failed to get answer from server')
+        return
+      }
+
+      const answer: string | undefined = data.answer
+      if (!answer) {
+        setError('Server did not return an answer')
+        return
+      }
+
+      setMessages((prev) => [...prev, { role: 'assistant', text: answer }])
+    } catch (err) {
+      setError('An error occurred while asking the question')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen p-8">
@@ -52,14 +104,63 @@ export default function QAPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    💬 This is a frontend-only demo. Q&A functionality is not available without backend integration.
-                  </p>
+                <div className="border rounded-lg p-4 h-[360px] overflow-y-auto bg-muted/40">
+                  {messages.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Ask a question about this document to get started.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {messages.map((m, idx) => (
+                        <div
+                          key={idx}
+                          className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div
+                            className={`max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-line ${
+                              m.role === 'user'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-background border'
+                            }`}
+                          >
+                            {m.text}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  In a full implementation, this page would allow you to ask questions about your document and receive AI-powered answers based on the content.
-                </p>
+
+                {error && (
+                  <p className="text-xs text-destructive">
+                    {error}
+                  </p>
+                )}
+
+                <div className="flex gap-2 pt-2">
+                  <input
+                    className="flex-1 border rounded-md px-3 py-2 text-sm bg-background"
+                    placeholder="Ask a question about this document..."
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        handleAsk()
+                      }
+                    }}
+                  />
+                  <Button type="button" onClick={handleAsk} disabled={isLoading || !input.trim()}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Asking...
+                      </>
+                    ) : (
+                      'Ask'
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </motion.div>

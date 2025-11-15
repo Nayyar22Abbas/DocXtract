@@ -1,87 +1,183 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { API_BASE, authHeaders, getUsername } from '@/lib/api/auth'
 
 export interface StoredDocument {
-  id: string
+  id: string // backend Mongo _id
   name: string
   uploadDate: string
   size: number
   type: 'pdf' | 'doc' | 'docx'
+  savedPath?: string
 }
 
 interface DocumentContextType {
   documents: StoredDocument[]
-  addDocument: (file: File) => boolean
+  addDocument: (file: File) => Promise<boolean>
   deleteDocument: (id: string) => void
   getDocumentCount: () => number
+  getSummary: (id: string) => string | undefined
+  getFileForDoc: (id: string) => File | undefined
   isLoading: boolean
 }
 
 const DocumentContext = createContext<DocumentContextType | undefined>(undefined)
 
-const STORAGE_KEY = 'docxtract_documents'
-const MAX_DOCUMENTS = 5
-
 export function DocumentProvider({ children }: { children: ReactNode }) {
   const [documents, setDocuments] = useState<StoredDocument[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [summaryById, setSummaryById] = useState<Record<string, string>>({})
+  const [fileById, setFileById] = useState<Record<string, File>>({})
 
-  // Load from localStorage on mount
-  useEffect(() => {
+  const fetchDocumentsForUser = async (userId: string | null): Promise<StoredDocument[]> => {
+    if (!userId) {
+      setDocuments([])
+      setIsLoading(false)
+      return []
+    }
+
     try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        setDocuments(JSON.parse(stored))
+      const res = await fetch(`${API_BASE}/list/list-pdfs/${encodeURIComponent(userId)}`, {
+        method: 'GET',
+        headers: {
+          ...authHeaders(),
+        },
+      })
+
+      if (!res.ok) {
+        console.error('Failed to fetch documents from backend')
+        setDocuments([])
+        return []
       }
+
+      const data = await res.json().catch(() => ({}))
+      const docs = (data.documents || []).map((doc: any) => {
+        const originalName = doc.original_name as string
+        const lower = originalName.toLowerCase()
+        const type: 'pdf' | 'doc' | 'docx' = lower.endsWith('.pdf')
+          ? 'pdf'
+          : lower.endsWith('.docx')
+            ? 'docx'
+            : 'doc'
+
+        return {
+          id: doc.id as string,
+          name: originalName,
+          uploadDate: doc.upload_time as string,
+          size: 0,
+          type,
+          savedPath: doc.saved_path as string,
+        } satisfies StoredDocument
+      })
+
+      setDocuments(docs)
+      return docs
     } catch (error) {
-      console.error('Failed to load documents from localStorage:', error)
+      console.error('Error fetching documents from backend:', error)
+      setDocuments([])
+      return []
     } finally {
       setIsLoading(false)
     }
+  }
+
+  useEffect(() => {
+    const userId = getUsername()
+    fetchDocumentsForUser(userId)
+
+    if (typeof window !== 'undefined') {
+      const handleAuthChanged = () => {
+        const nextUserId = getUsername()
+        setIsLoading(true)
+        fetchDocumentsForUser(nextUserId)
+        setSummaryById({})
+        setFileById({})
+      }
+
+      window.addEventListener('dx-auth-changed', handleAuthChanged as EventListener)
+
+      return () => {
+        window.removeEventListener('dx-auth-changed', handleAuthChanged as EventListener)
+      }
+    }
   }, [])
 
-  // Save to localStorage whenever documents change
-  useEffect(() => {
-    if (!isLoading) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(documents))
-    }
-  }, [documents, isLoading])
-
-  const addDocument = (file: File): boolean => {
-    if (documents.length >= MAX_DOCUMENTS) {
+  const addDocument = async (file: File): Promise<boolean> => {
+    const userId = getUsername()
+    if (!userId) {
+      console.error('Cannot upload document without authenticated user')
       return false
     }
 
-    const fileType = file.name.endsWith('.pdf')
-      ? 'pdf'
-      : file.name.endsWith('.docx')
-        ? 'docx'
-        : 'doc'
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      // NOTE: Backend defines user_id as a non-form parameter, so we send it in the query string
 
-    const newDocument: StoredDocument = {
-      id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name: file.name,
-      uploadDate: new Date().toISOString(),
-      size: file.size,
-      type: fileType,
+      const res = await fetch(`${API_BASE}/summary/summarize-pdf/?user_id=${encodeURIComponent(userId)}`, {
+        method: 'POST',
+        headers: {
+          ...authHeaders(),
+        },
+        body: formData,
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        console.error('Failed to summarize and upload PDF:', data)
+        return false
+      }
+
+      const savedPath = data?.file_info?.saved_path as string | undefined
+      const summary = data?.summary as string | undefined
+
+      const docs = await fetchDocumentsForUser(userId)
+
+      if (savedPath && summary) {
+        const newDoc = docs.find((d) => d.savedPath === savedPath)
+        if (newDoc) {
+          setFileById((prev) => ({ ...prev, [newDoc.id]: file }))
+          setSummaryById((prev) => ({ ...prev, [newDoc.id]: summary }))
+        }
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error uploading document:', error)
+      return false
     }
-
-    setDocuments((prev) => [newDocument, ...prev])
-    return true
   }
 
   const deleteDocument = (id: string) => {
+    // Frontend-only deletion for now; backend files remain until a delete API exists
     setDocuments((prev) => prev.filter((doc) => doc.id !== id))
+    setSummaryById((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
+    setFileById((prev) => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
   }
 
   const getDocumentCount = () => documents.length
 
-  const value = {
+  const getSummary = (id: string) => summaryById[id]
+
+  const getFileForDoc = (id: string) => fileById[id]
+
+  const value: DocumentContextType = {
     documents,
     addDocument,
     deleteDocument,
     getDocumentCount,
+    getSummary,
+    getFileForDoc,
     isLoading,
   }
 

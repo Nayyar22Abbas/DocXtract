@@ -34,13 +34,13 @@ export default function DashboardPage() {
     setSelectedFile(file)
     setIsProcessing(true)
     try {
-      const success = addDocument(file)
+      const success = await addDocument(file)
       if (success) {
         console.log("Document added:", file.name)
         await new Promise(resolve => setTimeout(resolve, 500))
         router.push("/dashboard/document-processing")
       } else {
-        alert("Cannot add more than 5 documents. Please delete one first.")
+        // If upload failed, reset selection
         setSelectedFile(null)
       }
     } catch (error) {
@@ -170,8 +170,10 @@ export default function DashboardPage() {
                   <FileText className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="font-semibold mb-2">Documents</h3>
-                <p className="text-2xl font-bold text-muted-foreground mb-1">0</p>
-                <p className="text-xs text-muted-foreground">No documents uploaded yet</p>
+                <p className="text-2xl font-bold text-muted-foreground mb-1">{getDocumentCount()}</p>
+                <p className="text-xs text-muted-foreground">
+                  {getDocumentCount() === 0 ? 'No documents uploaded yet' : 'Documents stored in your account'}
+                </p>
               </CardContent>
             </Card>
           </motion.div>

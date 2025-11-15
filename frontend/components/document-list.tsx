@@ -74,7 +74,7 @@ export function DocumentList({
       <div>
         <h2 className="text-2xl font-bold mb-2">Your Documents</h2>
         <p className="text-muted-foreground">
-          {documents.length} of 5 documents ({selectedDocIds.length} selected)
+          {documents.length} document{documents.length === 1 ? '' : 's'} ({selectedDocIds.length} selected)
         </p>
       </div>
 

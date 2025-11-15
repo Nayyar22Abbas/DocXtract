@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export type ProcessType =
   | 'summarize'
+  | 'chapters'
   | 'citation'
   | 'qa'
   | 'concepts'
@@ -44,6 +45,15 @@ const PROCESS_CARDS: ProcessCard[] = [
     icon: <FileText className="h-8 w-8" />,
     color: 'from-blue-500 to-blue-600',
     path: '/dashboard/document-processing/summarize',
+    requiresMultipleDocs: false,
+  },
+  {
+    id: 'chapters',
+    title: 'Chapter-wise Summary',
+    description: 'View AI-generated summaries for each chapter',
+    icon: <BookOpen className="h-8 w-8" />,
+    color: 'from-teal-500 to-teal-600',
+    path: '/dashboard/document-processing/chapters',
     requiresMultipleDocs: false,
   },
   {
