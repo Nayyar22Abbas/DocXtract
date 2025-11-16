@@ -151,18 +151,40 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
   }
 
   const deleteDocument = (id: string) => {
-    // Frontend-only deletion for now; backend files remain until a delete API exists
-    setDocuments((prev) => prev.filter((doc) => doc.id !== id))
-    setSummaryById((prev) => {
-      const next = { ...prev }
-      delete next[id]
-      return next
-    })
-    setFileById((prev) => {
-      const next = { ...prev }
-      delete next[id]
-      return next
-    })
+    // Call backend delete API; keep function sync for existing callers
+    ;(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/deletepdf/pdf/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: {
+            ...authHeaders(),
+          },
+        })
+
+        const data = await res.json().catch(() => ({}))
+
+        if (!res.ok) {
+          console.error('Failed to delete PDF on backend:', data)
+          return
+        }
+      } catch (error) {
+        console.error('Error deleting PDF on backend:', error)
+        return
+      }
+
+      // Only update local state if backend deletion succeeded
+      setDocuments((prev) => prev.filter((doc) => doc.id !== id))
+      setSummaryById((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      setFileById((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+    })()
   }
 
   const getDocumentCount = () => documents.length
