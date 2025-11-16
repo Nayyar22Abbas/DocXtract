@@ -1,0 +1,8 @@
+{
+  "architectures": ["DistilBertModel"],
+  "model_type": "distilbert",
+  "hidden_size": 768,
+  "num_attention_heads": 12,
+  "num_hidden_layers": 6,
+  "vocab_size": 30522
+}

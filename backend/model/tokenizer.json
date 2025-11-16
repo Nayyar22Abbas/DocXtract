@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "model": {
+    "type": "bert",
+    "vocab": {
+      "hello": 0,
+      "world": 1
+    }
+  }
+}

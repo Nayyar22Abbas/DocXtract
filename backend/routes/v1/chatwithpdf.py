@@ -16,7 +16,7 @@ def chat_with_pdf(pdf_id: str, question: str = Body(...)):
     """
     Chat with a specific PDF.
     """
-    # 1️⃣ Get PDF metadata from MongoDB
+    
     doc = pdfconn.find_one({"_id": ObjectId(pdf_id)})
     if not doc:
         raise HTTPException(status_code=404, detail="PDF not found")
@@ -25,11 +25,11 @@ def chat_with_pdf(pdf_id: str, question: str = Body(...)):
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File missing on server")
 
-    # 2️⃣ Extract text from PDF
+   
     pdf_text = extract_text_from_pdf(file_path)
-    pdf_text = pdf_text[:15000]  # truncate for Gemini input
+    pdf_text = pdf_text[:15000]  
 
-    # 3️⃣ Generate answer with Gemini
+    
     model = genai.GenerativeModel(model_name="gemini-2.0-flash") # type: ignore
     prompt = f"You are an AI assistant. Answer the following question based on the PDF content.\n\nPDF Content:\n{pdf_text}\n\nQuestion:\n{question}"
     response = model.generate_content(prompt)
