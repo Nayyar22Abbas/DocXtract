@@ -163,13 +163,16 @@ export default function ComparisonPage() {
             <Card className="glass-effect border-primary/20">
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      Click the button below to send both documents to the backend comparison API.
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">
+                      Ready to compare these documents?
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      We&apos;ll analyze both files and highlight the most important similarities and differences.
                     </p>
                   </div>
                   <Button onClick={handleCompare} disabled={isComparing}>
-                    {isComparing ? 'Comparing…' : 'Compare Documents'}
+                    {isComparing ? 'Comparing…' : 'Compare documents'}
                   </Button>
                 </div>
 

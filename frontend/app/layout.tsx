@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { Navbar } from "@/components/navbar"
 import { Providers } from "@/components/providers"
+import { FuturisticBackground } from "@/components/futuristic-background"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,9 +30,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <FuturisticBackground />
         <Providers>
           <Navbar />
-          <main className="min-h-screen">{children}</main>
+          <main className="relative min-h-screen">{children}</main>
         </Providers>
       </body>
     </html>

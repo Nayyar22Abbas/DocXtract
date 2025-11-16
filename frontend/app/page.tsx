@@ -24,8 +24,6 @@ const staggerContainer = {
 export default function HomePage() {
   return (
     <div className="relative min-h-screen">
-      <FuturisticBackground />
-
       {/* Hero Section */}
       <section className="relative pt-20 pb-16 px-4">
         <div className="container max-w-6xl mx-auto">

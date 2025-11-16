@@ -6,7 +6,6 @@ import { motion } from "framer-motion"
 import { FileText, Upload, BarChart3, Activity, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { FuturisticBackground } from "@/components/futuristic-background"
 import { DocumentUpload } from "@/components/document-upload"
 import { useDocuments } from "@/lib/providers/document-provider"
 
@@ -51,9 +50,7 @@ export default function DashboardPage() {
     }
   }
   return (
-    <div className="min-h-screen relative">
-      <FuturisticBackground />
-
+    <div className="relative min-h-screen">
       <div className="container max-w-7xl mx-auto p-6 space-y-8">
         {/* Welcome Header */}
         <motion.div

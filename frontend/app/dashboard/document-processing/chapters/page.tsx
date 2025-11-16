@@ -116,7 +116,7 @@ export default function ChaptersPage() {
           <div>
             <h1 className="text-4xl font-bold">Chapter-wise Summary</h1>
             <p className="text-muted-foreground text-lg mt-2">
-              View AI-generated summaries for each chapter
+              Explore how each chapter contributes to the overall story of your document.
             </p>
           </div>
           <Button
@@ -128,6 +128,17 @@ export default function ChaptersPage() {
             Back
           </Button>
         </div>
+
+        {!doc1 && (
+          <Card className="glass-effect border-primary/20">
+            <CardContent className="py-8 text-center space-y-2">
+              <p className="text-sm text-muted-foreground">No document selected for chapter-wise summary.</p>
+              <p className="text-xs text-muted-foreground">
+                Go back to Document Processing and choose a document with chapters.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {doc1 && (
           <motion.div
@@ -150,13 +161,13 @@ export default function ChaptersPage() {
                   <div className="flex flex-col items-center gap-2 py-4">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                     <p className="text-xs text-muted-foreground text-center">
-                      Generating chapter-wise summaries... this can take longer for large or multi-chapter PDFs.
+                      Generating chapter-wise summaries... this can take a little longer for large or multi-chapter PDFs.
                     </p>
                   </div>
                 )}
 
                 {error && (
-                  <div className="p-3 rounded-md bg-red-500/10 border border-red-500/40 text-xs text-red-700 dark:text-red-300">
+                  <div className="p-3 rounded-md bg-destructive/10 text-xs text-destructive">
                     {error}
                   </div>
                 )}

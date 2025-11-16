@@ -94,7 +94,7 @@ export default function QAPage() {
           <div>
             <h1 className="text-4xl font-bold">Q&A Chatbot</h1>
             <p className="text-muted-foreground text-lg mt-2">
-              Ask questions about your document content
+              Ask conversational questions about your document and get AI-powered answers.
             </p>
           </div>
           <Button
@@ -106,6 +106,17 @@ export default function QAPage() {
             Back
           </Button>
         </div>
+
+        {!doc1 && (
+          <Card className="glass-effect border-primary/20">
+            <CardContent className="py-8 text-center space-y-2">
+              <p className="text-sm text-muted-foreground">No document selected for Q&amp;A.</p>
+              <p className="text-xs text-muted-foreground">
+                Go back to Document Processing and choose a document to chat with.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {doc1 && (
           <motion.div
@@ -127,7 +138,7 @@ export default function QAPage() {
                 <div className="border rounded-lg p-4 h-[360px] overflow-y-auto bg-muted/40">
                   {messages.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      Ask a question about this document to get started.
+                      Ask a question about this document to get started. For example: &quot;What are the main findings?&quot;
                     </p>
                   ) : (
                     <div className="space-y-3">
@@ -152,9 +163,9 @@ export default function QAPage() {
                 </div>
 
                 {error && (
-                  <p className="text-xs text-destructive">
+                  <div className="p-3 rounded-md bg-destructive/10 text-xs text-destructive">
                     {error}
-                  </p>
+                  </div>
                 )}
 
                 <div className="flex gap-2 pt-2">

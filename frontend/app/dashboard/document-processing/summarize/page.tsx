@@ -111,7 +111,7 @@ export default function SummarizePage() {
           <div>
             <h1 className="text-4xl font-bold">Document Summarization</h1>
             <p className="text-muted-foreground text-lg mt-2">
-              Generate a concise summary of your document
+              Generate an AI summary of your document to quickly understand the key points.
             </p>
           </div>
           <Button
@@ -123,6 +123,19 @@ export default function SummarizePage() {
             Back
           </Button>
         </div>
+
+        {!doc1 && (
+          <Card className="glass-effect border-primary/20">
+            <CardContent className="py-8 text-center space-y-2">
+              <p className="text-sm text-muted-foreground">
+                No document selected for summarization.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Go back to Document Processing and choose a document to summarize.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {doc1 && (
           <motion.div
@@ -149,17 +162,37 @@ export default function SummarizePage() {
                   </div>
                 )}
 
-                {error && (
-                  <p className="text-xs text-destructive">
-                    {error}
+                {!displaySummary && !isGenerating && !error && (
+                  <p className="text-xs text-muted-foreground">
+                    We&apos;re ready when you are. Click &quot;Generate summary&quot; below to summarize this document.
                   </p>
                 )}
 
-                {!displaySummary && isGenerating && (
-                  <p className="text-xs text-muted-foreground">
-                    Generating summary...
-                  </p>
+                {error && (
+                  <div className="p-3 rounded-md bg-destructive/10 text-xs text-destructive">
+                    {error}
+                  </div>
                 )}
+
+                {isGenerating && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>Generating summary... this can take a moment for longer PDFs.</span>
+                  </div>
+                )}
+
+                <div className="pt-2 flex justify-end">
+                  <Button onClick={handleGenerateSummary} disabled={isGenerating} size="sm">
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating
+                      </>
+                    ) : (
+                      'Generate summary'
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </motion.div>

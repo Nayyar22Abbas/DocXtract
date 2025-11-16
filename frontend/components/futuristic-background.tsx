@@ -24,14 +24,14 @@ export function FuturisticBackground() {
           animate={{
             background: isDark
               ? [
-                  "radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.15) 0%, transparent 50%), radial-gradient(circle at 40% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)",
-                  "radial-gradient(circle at 60% 20%, rgba(6, 182, 212, 0.2) 0%, transparent 50%), radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.2) 0%, transparent 50%), radial-gradient(circle at 80% 60%, rgba(139, 92, 246, 0.15) 0%, transparent 50%)",
-                  "radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.15) 0%, transparent 50%), radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.15) 0%, transparent 50%), radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)",
+                  "radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.35) 0%, transparent 55%), radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.35) 0%, transparent 55%), radial-gradient(circle at 40% 80%, rgba(139, 92, 246, 0.25) 0%, transparent 55%)",
+                  "radial-gradient(circle at 60% 20%, rgba(6, 182, 212, 0.45) 0%, transparent 55%), radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.45) 0%, transparent 55%), radial-gradient(circle at 80% 60%, rgba(139, 92, 246, 0.3) 0%, transparent 55%)",
+                  "radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.35) 0%, transparent 55%), radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.35) 0%, transparent 55%), radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.25) 0%, transparent 55%)",
                 ]
               : [
-                  "radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.08) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 50%), radial-gradient(circle at 40% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%)",
-                  "radial-gradient(circle at 60% 20%, rgba(6, 182, 212, 0.12) 0%, transparent 50%), radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.12) 0%, transparent 50%), radial-gradient(circle at 80% 60%, rgba(139, 92, 246, 0.08) 0%, transparent 50%)",
-                  "radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 50%), radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.08) 0%, transparent 50%), radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.05) 0%, transparent 50%)",
+                  "radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.22) 0%, transparent 55%), radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.22) 0%, transparent 55%), radial-gradient(circle at 40% 80%, rgba(139, 92, 246, 0.18) 0%, transparent 55%)",
+                  "radial-gradient(circle at 60% 20%, rgba(6, 182, 212, 0.26) 0%, transparent 55%), radial-gradient(circle at 20% 80%, rgba(16, 185, 129, 0.26) 0%, transparent 55%), radial-gradient(circle at 80% 60%, rgba(139, 92, 246, 0.2) 0%, transparent 55%)",
+                  "radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.22) 0%, transparent 55%), radial-gradient(circle at 40% 40%, rgba(16, 185, 129, 0.22) 0%, transparent 55%), radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.18) 0%, transparent 55%)",
                 ],
           }}
           transition={{
@@ -44,10 +44,10 @@ export function FuturisticBackground() {
       </div>
 
       <div className="absolute inset-0">
-        {Array.from({ length: 30 }).map((_, i) => {
+        {Array.from({ length: 40 }).map((_, i) => {
           const colors = isDark
-            ? ["bg-cyan-400/30", "bg-emerald-400/30", "bg-purple-400/20", "bg-blue-400/25"]
-            : ["bg-cyan-500/20", "bg-emerald-500/20", "bg-purple-500/15", "bg-blue-500/18"]
+            ? ["bg-cyan-400/45", "bg-emerald-400/45", "bg-purple-400/35", "bg-blue-400/35"]
+            : ["bg-cyan-500/35", "bg-emerald-500/35", "bg-purple-500/28", "bg-blue-500/30"]
 
           const sizes = ["w-1 h-1", "w-2 h-2", "w-1.5 h-1.5", "w-0.5 h-0.5"]
 
@@ -75,7 +75,7 @@ export function FuturisticBackground() {
       </div>
 
       <div
-        className={`absolute inset-0 ${isDark ? "opacity-[0.03]" : "opacity-[0.02]"}`}
+        className={`absolute inset-0 ${isDark ? "opacity-[0.08]" : "opacity-[0.06]"}`}
         style={{
           backgroundImage: isDark
             ? `
