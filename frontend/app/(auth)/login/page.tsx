@@ -45,8 +45,8 @@ export default function LoginPage() {
     try {
       const result = await login(data)
       if (result.success) {
-        // Use router.push to properly update session state
-        router.push("/dashboard")
+        // After successful sign-in, take the user to the authenticated Home/guide page
+        router.push("/guide")
       } else {
         setError(result.message || "Login failed")
       }
