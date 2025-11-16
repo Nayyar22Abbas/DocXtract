@@ -54,9 +54,9 @@ export default function ChaptersPage() {
       try {
         const formData = new FormData()
         formData.append('file', file)
-        // NOTE: Backend defines user_id as a non-form parameter, so we send it in the query string
+        formData.append('user_id', userId)
 
-        const res = await fetch(`${API_BASE}/chaptersum/summarize-pdf-chapters/?user_id=${encodeURIComponent(userId)}`, {
+        const res = await fetch(`${API_BASE}/chaptersum/summarize-pdf-chapters/`, {
           method: 'POST',
           headers: {
             ...authHeaders(),
