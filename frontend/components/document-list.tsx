@@ -1,9 +1,10 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { FileText, Trash2, Check } from 'lucide-react'
+import { FileText, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { StoredDocument } from '@/lib/providers/document-provider'
 import { useState } from 'react'
 
@@ -92,15 +93,20 @@ export function DocumentList({
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   {/* Checkbox/Selection indicator */}
-                  <div
-                    className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
-                      isSelected(doc.id)
-                        ? 'bg-primary border-primary'
-                        : 'border-primary/30 hover:border-primary/60'
-                    }`}
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.15 }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (canSelect(doc.id)) onSelectDocument(doc.id)
+                    }}
                   >
-                    {isSelected(doc.id) && <Check className="h-4 w-4 text-white" />}
-                  </div>
+                    <Checkbox
+                      checked={isSelected(doc.id)}
+                      className="size-5 border-primary/40 data-[state=checked]:border-primary data-[state=checked]:bg-primary"
+                    />
+                  </motion.div>
 
                   {/* File icon */}
                   <div className="flex-shrink-0 text-primary">

@@ -27,8 +27,8 @@ export function Navbar() {
         {/* Logo */}
         <Link href="/" className="flex items-center -my-8">
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <div className="relative h-24 w-24 mt-16 overflow-visible rounded-lg">
-              <Image src="/logo.png" alt="DocXtract Logo" width={96} height={96} className="object-contain" />
+            <div className="relative h-24 w-24 mt-10 overflow-visible rounded-lg">
+              <Image src="/logo2.png" alt="DocXtract Logo" width={96} height={96} className="object-contain" />
             </div>
           </motion.div>
         </Link>

@@ -143,12 +143,16 @@ export function ProcessCards({ selectedDocIds = [], onCardClick }: ProcessCardsP
     },
   }
 
+  const exactlyTwoSelected = selectedDocIds.length === 2
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold mb-2">Available Processes</h2>
         <p className="text-muted-foreground">
-          Select a process to analyze your document
+          {exactlyTwoSelected
+            ? 'Two documents selected: only comparison is available.'
+            : 'Select a process to analyze your document'}
           {selectedDocIds.length > 0 && ` (${selectedDocIds.length} selected)`}
         </p>
       </div>
@@ -160,9 +164,10 @@ export function ProcessCards({ selectedDocIds = [], onCardClick }: ProcessCardsP
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         {PROCESS_CARDS.map((card) => {
-          const isDisabled =
-            (card.requiresMultipleDocs && selectedDocIds.length < 2) ||
-            (!card.requiresMultipleDocs && selectedDocIds.length === 0)
+          const isDisabled = exactlyTwoSelected
+            ? card.id !== 'comparison'
+            : (card.requiresMultipleDocs && selectedDocIds.length < 2) ||
+              (!card.requiresMultipleDocs && selectedDocIds.length === 0)
 
           return (
             <motion.div key={card.id} variants={fadeInUp}>
@@ -190,7 +195,11 @@ export function ProcessCards({ selectedDocIds = [], onCardClick }: ProcessCardsP
                   )}
 
                   <div className="flex items-center gap-2 text-primary text-sm font-medium pt-2">
-                    {isDisabled ? 'Select document to start' : 'Start process'}
+                    {isDisabled
+                      ? exactlyTwoSelected && card.id !== 'comparison'
+                        ? 'Only comparison is available with 2 documents'
+                        : 'Select document to start'
+                      : 'Start process'}
                     <ArrowRight className="h-4 w-4" />
                   </div>
                 </CardContent>

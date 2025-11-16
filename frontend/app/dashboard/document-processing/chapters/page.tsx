@@ -34,15 +34,36 @@ export default function ChaptersPage() {
       if (hasRequestedRef.current) return
       hasRequestedRef.current = true
 
-      const file = getFileForDoc(doc1Id)
-      if (!file) {
-        setError(
-          'Chapter-wise summary is only available for documents uploaded in this session. Please upload the document again from the dashboard.'
-        )
+      let file = getFileForDoc(doc1Id)
+
+      const userId = getUsername()
+      if (!userId) {
+        setError('You must be logged in to generate chapter-wise summaries.')
         return
       }
 
-      const userId = getUsername()
+      // If we don't have the file in this session, download it from the backend
+      if (!file) {
+        try {
+          const downloadRes = await fetch(`${API_BASE}/pdfdownload/download-pdf/${encodeURIComponent(doc1Id)}`, {
+            method: 'GET',
+            headers: {
+              ...authHeaders(),
+            },
+          })
+
+          if (!downloadRes.ok) {
+            setError('Failed to download document from server.')
+            return
+          }
+
+          const blob = await downloadRes.blob()
+          file = new File([blob], doc1.name || 'document.pdf', { type: 'application/pdf' })
+        } catch (err) {
+          setError('Failed to download document from server.')
+          return
+        }
+      }
       if (!userId) {
         setError('You must be logged in to generate chapter-wise summaries.')
         return
