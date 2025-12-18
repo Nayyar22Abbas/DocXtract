@@ -1,0 +1,6 @@
+#ignore environment files
+.env
+#ignore llm models in folder named as model
+model/*.gguf
+#ingore the virtual environment files
+venv/

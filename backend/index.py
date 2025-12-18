@@ -13,6 +13,9 @@ from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from routes.v1.deletepdf import deletepdf
 from routes.v1.pdfcomparison import pdfcompare
+
+#after this v2 model component loading
+from routes.v2.pdf_chat_model import modelpdfchat
 import os
 
 
@@ -44,7 +47,7 @@ app.add_middleware(
 
 
 )
-
+#version 1 with gemini API
 app.include_router(router,prefix="/users", tags=["Users"])
 app.include_router(authuser,prefix="/authuser",tags=["AuthUser"])
 app.include_router(protected_router,prefix="/protected_route", tags=["protected"])
@@ -55,7 +58,13 @@ app.include_router(listpdf,prefix="/list", tags=["pdf"])
 app.include_router(pdfchat,prefix="/pdfchat", tags=["pdf"])
 app.include_router(deletepdf,prefix="/deletepdf", tags=["pdf"])
 app.include_router(pdfcompare,prefix="/ppdfcomparison", tags=["pdf comparison"])
+
+#version 2 with model implementation
+
+app.include_router(modelpdfchat,prefix="/modelpdfchat", tags=["model"])
+
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
+
 
 
 
