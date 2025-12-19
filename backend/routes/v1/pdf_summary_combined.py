@@ -49,7 +49,7 @@ async def summarize_pdf_combined(file: UploadFile = File(...), user_id: str = "a
         raise HTTPException(status_code=400, detail="No text could be extracted from the PDF.")
 
     # 4️⃣ Generate General Summary using Gemini
-    model = genai.GenerativeModel(model_name="gemini-2.0-flash") # type: ignore
+    model = genai.GenerativeModel(model_name="gemini-2.5-flash") # type: ignore
     
     # Truncate text for general summary if too long
     general_summary_text = pdf_text[:15000] 

@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from routes.v1.deletepdf import deletepdf
 from routes.v1.pdfcomparison import pdfcompare
+from routes.v1.lit_review_builder import lit_review_router
 
 from routes.v2.pdf_chat_model import modelpdfchat
 from routes.v2.pdf_summary_model import pdfsummarymodel
@@ -56,6 +57,7 @@ app.include_router(listpdf,prefix="/list", tags=["pdf"])
 app.include_router(pdfchat,prefix="/pdfchat", tags=["pdf"])
 app.include_router(deletepdf,prefix="/deletepdf", tags=["pdf"])
 app.include_router(pdfcompare,prefix="/ppdfcomparison", tags=["pdf comparison"])
+app.include_router(lit_review_router,prefix="/lit-review", tags=["Literature Review"])
 
 #version 2 with model implementation
 
