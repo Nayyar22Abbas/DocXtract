@@ -15,7 +15,11 @@ from routes.v1.pdfcomparison import pdfcompare
 from routes.v1.lit_review_builder import lit_review_router
 
 from routes.v2.pdf_chat_model import modelpdfchat
+
 from routes.v2.pdf_summary_model import pdfsummarymodel
+
+from routes.v2.mcqs import mcqs
+
 import os
 
 
@@ -62,7 +66,11 @@ app.include_router(lit_review_router,prefix="/lit-review", tags=["Literature Rev
 #version 2 with model implementation
 
 app.include_router(modelpdfchat,prefix="/modelpdfchat", tags=["model"])
+
 app.include_router(pdfsummarymodel,prefix="/modelpdfsummary", tags=["model"])
+
+
+app.include_router(mcqs,prefix="/mcqgeneration", tags=["model"])
 
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
 
