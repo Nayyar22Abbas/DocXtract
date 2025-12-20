@@ -1,24 +1,39 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useDocuments } from '@/lib/providers/document-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Upload, Loader2, Copy, X } from 'lucide-react'
-import { generateLiteratureReview } from '@/lib/api/endpoints'
+import { generateLiteratureReview, downloadPdf } from '@/lib/api/endpoints'
 import { getUsername } from '@/lib/api/auth'
 import ReactMarkdown from 'react-markdown'
 
 export default function LiteratureReviewPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { documents } = useDocuments()
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  const doc1Id = searchParams.get('doc1')
+  const doc1 = documents.find(d => d.id === doc1Id)
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [literatureReview, setLiteratureReview] = useState<string>('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+
+  // Always abort pending requests on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -34,7 +49,25 @@ export default function LiteratureReviewPage() {
   }
 
   const handleGenerateReview = async () => {
-    if (selectedFiles.length === 0) {
+    // Collect all files: the selected doc1 + any additional files uploaded
+    const allFiles: File[] = []
+    
+    // Add the selected document from document-processing
+    if (doc1) {
+      try {
+        const pdfBlob = await downloadPdf(doc1.id)
+        const file = new File([pdfBlob], doc1.name || 'document.pdf', { type: 'application/pdf' })
+        allFiles.push(file)
+      } catch (err) {
+        setError('Failed to load selected document. Please try again.')
+        return
+      }
+    }
+
+    // Add any additional files the user selected
+    allFiles.push(...selectedFiles)
+
+    if (allFiles.length === 0) {
       setError('Please select at least one PDF file')
       return
     }
@@ -45,13 +78,17 @@ export default function LiteratureReviewPage() {
       return
     }
 
+    abortControllerRef.current = new AbortController()
     setIsGenerating(true)
     setError(null)
 
     try {
-      const result = await generateLiteratureReview(selectedFiles, userId)
+      const result = await generateLiteratureReview(allFiles, userId, abortControllerRef.current.signal)
       setLiteratureReview(result.literature_review)
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return
+      }
       setError(err instanceof Error ? err.message : 'Failed to generate literature review')
     } finally {
       setIsGenerating(false)
@@ -90,12 +127,32 @@ export default function LiteratureReviewPage() {
           transition={{ duration: 0.5 }}
           className="space-y-6"
         >
+          {/* Selected Base Document */}
+          {doc1 && (
+            <Card className="glass-effect border-primary/20 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="text-lg">Selected Document</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between p-3 bg-background rounded-lg border border-primary/20">
+                  <span className="text-sm font-medium flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-primary"></span>
+                    {doc1.name}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  This document will be included in the literature review analysis
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* File Upload */}
           <Card className="glass-effect border-primary/20">
             <CardHeader>
-              <CardTitle>Select Research Papers</CardTitle>
+              <CardTitle>Add Additional Papers</CardTitle>
               <CardDescription>
-                Upload multiple PDF files to generate a literature review synthesis
+                Optionally upload more PDF files to include in the literature review synthesis
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -119,7 +176,7 @@ export default function LiteratureReviewPage() {
                     Click to select PDFs or drag and drop
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    Select 2 or more research papers
+                    PDF files (optional - add to your selected document)
                   </span>
                 </label>
               </div>
