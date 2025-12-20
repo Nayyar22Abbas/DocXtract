@@ -30,7 +30,7 @@ def chat_with_pdf(pdf_id: str, question: str = Body(...)):
     pdf_text = pdf_text[:15000]  
 
     
-    model = genai.GenerativeModel(model_name="gemini-2.0-flash") # type: ignore
+    model = genai.GenerativeModel(model_name="gemini-2.5-flash") # type: ignore
     prompt = f"You are an AI assistant. Answer the following question based on the PDF content.\n\nPDF Content:\n{pdf_text}\n\nQuestion:\n{question}"
     response = model.generate_content(prompt)
 

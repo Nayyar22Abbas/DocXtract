@@ -13,13 +13,13 @@ from dotenv import load_dotenv
 from routes.v1.deletepdf import deletepdf
 from routes.v1.pdfcomparison import pdfcompare
 from routes.v1.lit_review_builder import lit_review_router
+from routes.v1.quiz import quiz_router
 
 from routes.v2.pdf_chat_model import modelpdfchat
 
 from routes.v2.pdf_summary_model import pdfsummarymodel
-
 from routes.v2.mcqs import mcqs
-
+from routes.v2.quiz_model import quiz_model_router
 import os
 
 
@@ -62,12 +62,14 @@ app.include_router(pdfchat,prefix="/pdfchat", tags=["pdf"])
 app.include_router(deletepdf,prefix="/deletepdf", tags=["pdf"])
 app.include_router(pdfcompare,prefix="/ppdfcomparison", tags=["pdf comparison"])
 app.include_router(lit_review_router,prefix="/lit-review", tags=["Literature Review"])
+app.include_router(quiz_router,prefix="/v1/quiz", tags=["Quiz"])
 
 #version 2 with model implementation
 
 app.include_router(modelpdfchat,prefix="/modelpdfchat", tags=["model"])
 
 app.include_router(pdfsummarymodel,prefix="/modelpdfsummary", tags=["model"])
+app.include_router(quiz_model_router,prefix="/v2/quiz", tags=["model"])
 
 
 app.include_router(mcqs,prefix="/mcqgeneration", tags=["model"])

@@ -8,6 +8,7 @@ conn=MongoClient(MONGO_URI)
 
 authconn=conn.DOCxTRACT.users
 pdfconn = conn.DOCxTRACT.pdf_files
+quizconn = conn.DOCxTRACT.quizzes
 
 
 # later motor will be used to support the  async operations
