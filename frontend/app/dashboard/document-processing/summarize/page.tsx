@@ -6,25 +6,23 @@ import { motion } from 'framer-motion'
 import { useDocuments } from '@/lib/providers/document-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, FileText, Loader2 } from 'lucide-react'
-import { API_BASE, authHeaders, getUsername } from '@/lib/api/auth'
+import { ArrowLeft, FileText, Loader2, Copy, Download } from 'lucide-react'
+import { summarizePdfCombined, downloadPdf } from '@/lib/api/endpoints'
+import { getUsername } from '@/lib/api/auth'
+import ReactMarkdown from 'react-markdown'
 
 export default function SummarizePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { documents, getSummary } = useDocuments()
-  
+  const { documents } = useDocuments()
+
   const doc1Id = searchParams.get('doc1')
   const doc1 = documents.find(d => d.id === doc1Id)
-  const cachedSummary = doc1 ? getSummary(doc1.id) : undefined
 
-  const [displaySummary, setDisplaySummary] = useState<string | undefined>(cachedSummary)
+  const [summary, setSummary] = useState<string>('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    setDisplaySummary(cachedSummary)
-  }, [cachedSummary])
+  const [copied, setCopied] = useState(false)
 
   const handleGenerateSummary = async () => {
     if (!doc1) return
@@ -39,79 +37,40 @@ export default function SummarizePage() {
     setError(null)
 
     try {
-      // 1) Download original PDF from backend
-      const downloadRes = await fetch(`${API_BASE}/pdfdownload/download-pdf/${doc1.id}`, {
-        method: 'GET',
-        headers: {
-          ...authHeaders(),
-        },
-      })
+      // Download PDF blob from backend
+      const pdfBlob = await downloadPdf(doc1.id)
+      const file = new File([pdfBlob], doc1.name || 'document.pdf', { type: 'application/pdf' })
 
-      if (!downloadRes.ok) {
-        const err = await downloadRes.json().catch(() => ({}))
-        setError(err.detail || 'Failed to download document from server.')
-        return
-      }
-
-      const blob = await downloadRes.blob()
-      const fileName = doc1.name || 'document.pdf'
-      const file = new File([blob], fileName, { type: blob.type || 'application/pdf' })
-
-      // 2) Call summarize endpoint again with this file
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const summarizeRes = await fetch(
-        `${API_BASE}/summary/summarize-pdf/?user_id=${encodeURIComponent(userId)}`,
-        {
-          method: 'POST',
-          headers: {
-            ...authHeaders(),
-          },
-          body: formData,
-        }
-      )
-
-      const data = await summarizeRes.json().catch(() => ({}))
-
-      if (!summarizeRes.ok) {
-        setError(data.detail || 'Failed to generate summary from server.')
-        return
-      }
-
-      const newSummary: string | undefined = data.summary
-      if (!newSummary) {
-        setError('No summary returned from server.')
-        return
-      }
-
-      setDisplaySummary(newSummary)
-    } catch {
-      setError('An error occurred while generating the summary.')
+      // Call combined summary endpoint
+      const result = await summarizePdfCombined(file, userId)
+      setSummary(result.combined_summary)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate summary')
     } finally {
       setIsGenerating(false)
     }
   }
 
-  useEffect(() => {
-    // Auto-generate summary for documents that don't have a cached summary yet
-    if (!doc1) return
-    if (cachedSummary) return
-    if (displaySummary) return
-    if (isGenerating) return
+  const handleCopy = () => {
+    navigator.clipboard.writeText(summary)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
-    // Fire and forget; errors will be reflected in local state
+  useEffect(() => {
+    // Auto-generate summary on load if no summary yet
+    if (!doc1 || summary || isGenerating) return
     void handleGenerateSummary()
-  }, [doc1, cachedSummary, displaySummary, isGenerating])
+  }, [doc1])
 
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold">Document Summarization</h1>
+            <h1 className="text-4xl font-bold">Summarize Document</h1>
             <p className="text-muted-foreground text-lg mt-2">
-              Generate an AI summary of your document to quickly understand the key points.
+              AI-generated summary with chapter-wise breakdown
             </p>
           </div>
           <Button
@@ -131,7 +90,7 @@ export default function SummarizePage() {
                 No document selected for summarization.
               </p>
               <p className="text-xs text-muted-foreground">
-                Go back to Document Processing and choose a document to summarize.
+                Go back and select a document first.
               </p>
             </CardContent>
           </Card>
@@ -142,7 +101,9 @@ export default function SummarizePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            className="space-y-6"
           >
+            {/* Document Info Card */}
             <Card className="glass-effect border-primary/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -153,48 +114,96 @@ export default function SummarizePage() {
                   Uploaded on {new Date(doc1.uploadDate).toLocaleDateString()}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {displaySummary && (
-                  <div className="p-4 bg-muted/50 rounded-lg max-h-[400px] overflow-y-auto">
-                    <p className="whitespace-pre-line text-sm leading-relaxed">
-                      {displaySummary}
-                    </p>
-                  </div>
-                )}
-
-                {!displaySummary && !isGenerating && !error && (
-                  <p className="text-xs text-muted-foreground">
-                    We&apos;re ready when you are. Click &quot;Generate summary&quot; below to summarize this document.
-                  </p>
-                )}
-
-                {error && (
-                  <div className="p-3 rounded-md bg-destructive/10 text-xs text-destructive">
-                    {error}
-                  </div>
-                )}
-
-                {isGenerating && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <span>Generating summary... this can take a moment for longer PDFs.</span>
-                  </div>
-                )}
-
-                <div className="pt-2 flex justify-end">
-                  <Button onClick={handleGenerateSummary} disabled={isGenerating} size="sm">
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating
-                      </>
-                    ) : (
-                      'Generate summary'
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
             </Card>
+
+            {/* Summary Display Card */}
+            {summary && (
+              <Card className="glass-effect border-primary/20">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <CardTitle>Summary & Chapter Analysis</CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopy}
+                      className="gap-2"
+                    >
+                      <Copy className="h-4 w-4" />
+                      {copied ? 'Copied!' : 'Copy'}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="prose prose-invert max-w-none max-h-[600px] overflow-y-auto p-4 bg-muted/50 rounded-lg">
+                    <ReactMarkdown
+                      components={{
+                        h1: ({ node, ...props }) => <h1 className="text-2xl font-bold mt-6 mb-3" {...props} />,
+                        h2: ({ node, ...props }) => <h2 className="text-xl font-bold mt-5 mb-2" {...props} />,
+                        h3: ({ node, ...props }) => <h3 className="text-lg font-semibold mt-4 mb-2" {...props} />,
+                        p: ({ node, ...props }) => <p className="mb-3 leading-relaxed text-sm" {...props} />,
+                        ul: ({ node, ...props }) => <ul className="list-disc list-inside mb-3 space-y-1" {...props} />,
+                        li: ({ node, ...props }) => <li className="text-sm" {...props} />,
+                      }}
+                    >
+                      {summary}
+                    </ReactMarkdown>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Error Message */}
+            {error && !isGenerating && (
+              <Card className="glass-effect border-destructive/20 bg-destructive/5">
+                <CardContent className="py-4">
+                  <p className="text-sm text-destructive">{error}</p>
+                  <Button
+                    onClick={handleGenerateSummary}
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                  >
+                    Try Again
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Loading State */}
+            {isGenerating && (
+              <Card className="glass-effect border-primary/20">
+                <CardContent className="py-8">
+                  <div className="flex items-center justify-center gap-3">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <div className="space-y-2">
+                      <p className="font-medium">Generating summary...</p>
+                      <p className="text-xs text-muted-foreground">
+                        This may take a few moments for longer documents
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Generate Button */}
+            {!summary && !isGenerating && (
+              <Button
+                onClick={handleGenerateSummary}
+                disabled={isGenerating}
+                size="lg"
+                className="w-full"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  'Generate Summary'
+                )}
+              </Button>
+            )}
           </motion.div>
         )}
       </div>

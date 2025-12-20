@@ -115,7 +115,7 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       formData.append('file', file)
       // NOTE: Backend defines user_id as a non-form parameter, so we send it in the query string
 
-      const res = await fetch(`${API_BASE}/summary/summarize-pdf/?user_id=${encodeURIComponent(userId)}`, {
+      const res = await fetch(`${API_BASE}/summary/summarize-pdf-combined/?user_id=${encodeURIComponent(userId)}`, {
         method: 'POST',
         headers: {
           ...authHeaders(),
