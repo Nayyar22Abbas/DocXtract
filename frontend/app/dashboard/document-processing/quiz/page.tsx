@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useDocuments } from '@/lib/providers/document-provider'
@@ -48,6 +48,7 @@ export default function QuizPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { documents } = useDocuments()
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const doc1Id = searchParams.get('doc1')
   const doc1 = documents.find(d => d.id === doc1Id)
@@ -60,6 +61,15 @@ export default function QuizPage() {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
+  // Always abort pending requests on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
+
   useEffect(() => {
     if (!doc1 || quiz || isGenerating) return
     void handleGenerateQuiz()
@@ -67,6 +77,8 @@ export default function QuizPage() {
 
   const handleGenerateQuiz = async () => {
     if (!doc1) return
+
+    abortControllerRef.current = new AbortController()
 
     const userId = getUsername()
     if (!userId) {
@@ -84,9 +96,12 @@ export default function QuizPage() {
       const pdfBlob = await downloadPdf(doc1.id)
       const file = new File([pdfBlob], doc1.name || 'document.pdf', { type: 'application/pdf' })
 
-      const result = await generateQuizModel(file, 'Research Paper', userId)
+      const result = await generateQuizModel(file, 'Research Paper', userId, abortControllerRef.current.signal)
       setQuiz(result)
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return
+      }
       setError(err instanceof Error ? err.message : 'Failed to generate quiz')
     } finally {
       setIsGenerating(false)
@@ -100,10 +115,13 @@ export default function QuizPage() {
     setError(null)
 
     try {
-      const result = await getQuizSolution(quiz.quiz_id)
+      const result = await getQuizSolution(quiz.quiz_id, abortControllerRef.current?.signal)
       setSolution(result)
       setShowSolution(true)
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return
+      }
       setError(err instanceof Error ? err.message : 'Failed to fetch solution')
     } finally {
       setIsLoadingSolution(false)

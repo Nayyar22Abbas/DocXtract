@@ -7,7 +7,7 @@ import { API_BASE, authHeaders, getUsername } from './auth'
 // ============================================================================
 // 1. SUMMARIZE PDF (Combined - Summary + Chapter-wise)
 // ============================================================================
-export async function summarizePdfCombined(file: File, userId?: string) {
+export async function summarizePdfCombined(file: File, userId?: string, signal?: AbortSignal) {
   const formData = new FormData()
   formData.append('file', file)
   if (userId) formData.append('user_id', userId)
@@ -16,6 +16,7 @@ export async function summarizePdfCombined(file: File, userId?: string) {
     method: 'POST',
     headers: authHeaders(),
     body: formData,
+    signal,
   })
 
   if (!response.ok) {
@@ -45,7 +46,7 @@ export async function summarizePdfCombined(file: File, userId?: string) {
 // ============================================================================
 // 2. COMPARE PDFS
 // ============================================================================
-export async function comparePdfs(file1: File, file2: File, userId?: string) {
+export async function comparePdfs(file1: File, file2: File, userId?: string, signal?: AbortSignal) {
   const formData = new FormData()
   formData.append('file1', file1)
   formData.append('file2', file2)
@@ -55,6 +56,7 @@ export async function comparePdfs(file1: File, file2: File, userId?: string) {
     method: 'POST',
     headers: authHeaders(),
     body: formData,
+    signal,
   })
 
   if (!response.ok) {
@@ -83,7 +85,7 @@ export async function comparePdfs(file1: File, file2: File, userId?: string) {
 // ============================================================================
 // 3. LITERATURE REVIEW (Multiple PDFs)
 // ============================================================================
-export async function generateLiteratureReview(files: File[], userId?: string) {
+export async function generateLiteratureReview(files: File[], userId?: string, signal?: AbortSignal) {
   const formData = new FormData()
   files.forEach((file) => {
     formData.append('files', file)
@@ -94,6 +96,7 @@ export async function generateLiteratureReview(files: File[], userId?: string) {
     method: 'POST',
     headers: authHeaders(),
     body: formData,
+    signal,
   })
 
   if (!response.ok) {
@@ -119,7 +122,7 @@ export async function generateLiteratureReview(files: File[], userId?: string) {
 // ============================================================================
 // 4. QUIZ GENERATION (Using Mistral Model)
 // ============================================================================
-export async function generateQuizModel(file: File, documentType?: string, userId?: string) {
+export async function generateQuizModel(file: File, documentType?: string, userId?: string, signal?: AbortSignal) {
   const formData = new FormData()
   formData.append('file', file)
   if (documentType) formData.append('document_type', documentType)
@@ -129,6 +132,7 @@ export async function generateQuizModel(file: File, documentType?: string, userI
     method: 'POST',
     headers: authHeaders(),
     body: formData,
+    signal,
   })
 
   if (!response.ok) {
@@ -171,10 +175,11 @@ export async function generateQuizModel(file: File, documentType?: string, userI
 // ============================================================================
 // 5. GET QUIZ SOLUTION
 // ============================================================================
-export async function getQuizSolution(quizId: string) {
+export async function getQuizSolution(quizId: string, signal?: AbortSignal) {
   const response = await fetch(`${API_BASE}/v2/quiz/solution/${quizId}`, {
     method: 'GET',
     headers: authHeaders(),
+    signal,
   })
 
   if (!response.ok) {
@@ -221,13 +226,14 @@ export async function getQuizSolution(quizId: string) {
 // ============================================================================
 // 6. PDF CHAT
 // ============================================================================
-export async function chatWithPdf(pdfId: string, question: string) {
+export async function chatWithPdf(pdfId: string, question: string, signal?: AbortSignal) {
   const response = await fetch(`${API_BASE}/pdfchat/chat-pdf/${pdfId}`, {
     method: 'POST',
     headers: {
       ...authHeaders(),
     },
     body: question,
+    signal,
   })
 
   if (!response.ok) {
@@ -246,7 +252,7 @@ export async function chatWithPdf(pdfId: string, question: string) {
 // ============================================================================
 // 7. MCQ GENERATION
 // ============================================================================
-export async function generateMcqs(file: File, totalMcqs: number) {
+export async function generateMcqs(file: File, totalMcqs: number, signal?: AbortSignal) {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('total_mcqs', totalMcqs.toString())
@@ -255,6 +261,7 @@ export async function generateMcqs(file: File, totalMcqs: number) {
     method: 'POST',
     headers: authHeaders(),
     body: formData,
+    signal,
   })
 
   if (!response.ok) {
@@ -284,10 +291,11 @@ export async function generateMcqs(file: File, totalMcqs: number) {
 // 8. PDF MANAGEMENT
 // ============================================================================
 
-export async function downloadPdf(pdfId: string) {
+export async function downloadPdf(pdfId: string, signal?: AbortSignal) {
   const response = await fetch(`${API_BASE}/pdfdownload/download-pdf/${pdfId}`, {
     method: 'GET',
     headers: authHeaders(),
+    signal,
   })
 
   if (!response.ok) {

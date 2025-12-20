@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useDocuments } from '@/lib/providers/document-provider'
@@ -19,6 +19,7 @@ export default function McqPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { documents } = useDocuments()
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const doc1Id = searchParams.get('doc1')
   const doc1 = documents.find(d => d.id === doc1Id)
@@ -31,13 +32,19 @@ export default function McqPage() {
   const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: string | number }>({})
   const [showAnswers, setShowAnswers] = useState(false)
 
+  // Always abort pending requests on unmount
   useEffect(() => {
-    if (!doc1 || mcqs.length > 0 || isGenerating) return
-    void handleGenerateMcqs()
-  }, [doc1])
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
 
   const handleGenerateMcqs = async () => {
     if (!doc1) return
+
+    abortControllerRef.current = new AbortController()
 
     setIsGenerating(true)
     setError(null)
@@ -49,7 +56,7 @@ export default function McqPage() {
       const pdfBlob = await downloadPdf(doc1.id)
       const file = new File([pdfBlob], doc1.name || 'document.pdf', { type: 'application/pdf' })
 
-      const result = await generateMcqs(file, numMcqs)
+      const result = await generateMcqs(file, numMcqs, abortControllerRef.current.signal)
       // Filter valid MCQs
       const validMcqs = result.mcqs.filter(
         (mcq: any) =>
@@ -60,6 +67,9 @@ export default function McqPage() {
       ) as MCQ[]
       setMcqs(validMcqs)
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return
+      }
       setError(err instanceof Error ? err.message : 'Failed to generate MCQs')
     } finally {
       setIsGenerating(false)
@@ -170,6 +180,13 @@ export default function McqPage() {
                       Select between 5 and 50 questions
                     </p>
                   </div>
+                  <Button
+                    onClick={handleGenerateMcqs}
+                    disabled={isGenerating || !doc1}
+                    className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                  >
+                    Generate MCQs
+                  </Button>
                 </CardContent>
               </Card>
             )}

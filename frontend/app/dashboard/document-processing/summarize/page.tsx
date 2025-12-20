@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useDocuments } from '@/lib/providers/document-provider'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ export default function SummarizePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { documents } = useDocuments()
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const doc1Id = searchParams.get('doc1')
   const doc1 = documents.find(d => d.id === doc1Id)
@@ -24,8 +25,31 @@ export default function SummarizePage() {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
+  // Always abort pending requests on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!doc1 || summary || isGenerating) return
+    void handleGenerateSummary()
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [doc1])
+
   const handleGenerateSummary = async () => {
     if (!doc1) return
+
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController()
 
     const userId = getUsername()
     if (!userId) {
@@ -37,14 +61,17 @@ export default function SummarizePage() {
     setError(null)
 
     try {
-      // Download PDF blob from backend
+      // Download PDF blob from backend (never cancel)
       const pdfBlob = await downloadPdf(doc1.id)
       const file = new File([pdfBlob], doc1.name || 'document.pdf', { type: 'application/pdf' })
 
-      // Call combined summary endpoint
-      const result = await summarizePdfCombined(file, userId)
+      // Call combined summary endpoint (can be cancelled)
+      const result = await summarizePdfCombined(file, userId, abortControllerRef.current.signal)
       setSummary(result.combined_summary)
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return // Silently ignore abort errors
+      }
       setError(err instanceof Error ? err.message : 'Failed to generate summary')
     } finally {
       setIsGenerating(false)
@@ -56,12 +83,6 @@ export default function SummarizePage() {
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
-
-  useEffect(() => {
-    // Auto-generate summary on load if no summary yet
-    if (!doc1 || summary || isGenerating) return
-    void handleGenerateSummary()
-  }, [doc1])
 
   return (
     <div className="min-h-screen p-8">
