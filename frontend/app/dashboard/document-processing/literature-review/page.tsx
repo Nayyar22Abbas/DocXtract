@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import { useDocuments } from '@/lib/providers/document-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, Upload, Loader2, Copy, X } from 'lucide-react'
+import { ArrowLeft, Loader2, Copy } from 'lucide-react'
 import { generateLiteratureReview, downloadPdf } from '@/lib/api/endpoints'
 import { getUsername } from '@/lib/api/auth'
 import ReactMarkdown from 'react-markdown'
@@ -20,7 +20,6 @@ export default function LiteratureReviewPage() {
   const doc1Id = searchParams.get('doc1')
   const doc1 = documents.find(d => d.id === doc1Id)
 
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [literatureReview, setLiteratureReview] = useState<string>('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,21 +34,8 @@ export default function LiteratureReviewPage() {
     }
   }, [])
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files).filter(file =>
-        file.type === 'application/pdf'
-      )
-      setSelectedFiles(prev => [...prev, ...newFiles])
-    }
-  }
-
-  const handleRemoveFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
-  }
-
   const handleGenerateReview = async () => {
-    // Collect all files: the selected doc1 + any additional files uploaded
+    // Use only the selected document
     const allFiles: File[] = []
     
     // Add the selected document from document-processing
@@ -64,11 +50,8 @@ export default function LiteratureReviewPage() {
       }
     }
 
-    // Add any additional files the user selected
-    allFiles.push(...selectedFiles)
-
     if (allFiles.length === 0) {
-      setError('Please select at least one PDF file')
+      setError('No document selected. Please go back and select a document.')
       return
     }
 
@@ -84,12 +67,25 @@ export default function LiteratureReviewPage() {
 
     try {
       const result = await generateLiteratureReview(allFiles, userId, abortControllerRef.current.signal)
-      setLiteratureReview(result.literature_review)
+      
+      // Check if the result contains an error message from the backend
+      if (result.literature_review && result.literature_review.includes('⚠️')) {
+        // It's a warning/error message from the backend
+        setLiteratureReview(result.literature_review)
+        setError(null)
+      } else if (result.literature_review) {
+        setLiteratureReview(result.literature_review)
+        setError(null)
+      } else {
+        setError('No literature review was generated. Please try again.')
+      }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         return
       }
-      setError(err instanceof Error ? err.message : 'Failed to generate literature review')
+      const errorMsg = err instanceof Error ? err.message : 'Failed to generate literature review'
+      setError(errorMsg)
+      console.error('Literature review error:', err)
     } finally {
       setIsGenerating(false)
     }
@@ -150,64 +146,12 @@ export default function LiteratureReviewPage() {
           {/* File Upload */}
           <Card className="glass-effect border-primary/20">
             <CardHeader>
-              <CardTitle>Add Additional Papers</CardTitle>
+              <CardTitle>Generate Review</CardTitle>
               <CardDescription>
-                Optionally upload more PDF files to include in the literature review synthesis
+                Analyze the selected document to generate a literature review
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* File Input */}
-              <div className="border-2 border-dashed border-primary/30 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
-                <input
-                  type="file"
-                  multiple
-                  accept=".pdf"
-                  onChange={handleFileSelect}
-                  disabled={isGenerating}
-                  className="hidden"
-                  id="file-input"
-                />
-                <label
-                  htmlFor="file-input"
-                  className="flex flex-col items-center gap-2 cursor-pointer"
-                >
-                  <Upload className="h-8 w-8 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    Click to select PDFs or drag and drop
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    PDF files (optional - add to your selected document)
-                  </span>
-                </label>
-              </div>
-
-              {/* Selected Files */}
-              {selectedFiles.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">
-                    Selected Files ({selectedFiles.length})
-                  </p>
-                  <div className="space-y-2">
-                    {selectedFiles.map((file, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between p-2 bg-muted/50 rounded-lg"
-                      >
-                        <span className="text-sm truncate">{file.name}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveFile(idx)}
-                          disabled={isGenerating}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Error */}
               {error && (
                 <div className="p-3 rounded-md bg-destructive/10 text-sm text-destructive">
@@ -218,7 +162,7 @@ export default function LiteratureReviewPage() {
               {/* Generate Button */}
               <Button
                 onClick={handleGenerateReview}
-                disabled={isGenerating || selectedFiles.length === 0}
+                disabled={isGenerating}
                 className="w-full"
               >
                 {isGenerating ? (
@@ -257,8 +201,8 @@ export default function LiteratureReviewPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle>Literature Review Synthesis</CardTitle>
-                    <CardDescription>
-                      Based on {selectedFiles.length} research papers
+            <CardDescription>
+                      Based on the selected document
                     </CardDescription>
                   </div>
                   <Button
@@ -296,7 +240,6 @@ export default function LiteratureReviewPage() {
             <Button
               onClick={() => {
                 setLiteratureReview('')
-                setSelectedFiles([])
                 setError(null)
               }}
               variant="outline"

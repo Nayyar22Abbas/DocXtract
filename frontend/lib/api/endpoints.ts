@@ -259,7 +259,10 @@ export async function generateMcqs(file: File, totalMcqs: number, signal?: Abort
 
   const response = await fetch(`${API_BASE}/mcqgeneration/generate-mcqs/`, {
     method: 'POST',
-    headers: authHeaders(),
+    headers: {
+      // Only include Authorization, let FormData handle Content-Type
+      ...authHeaders(),
+    },
     body: formData,
     signal,
   })

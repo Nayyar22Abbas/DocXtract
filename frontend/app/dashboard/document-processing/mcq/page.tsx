@@ -25,7 +25,7 @@ export default function McqPage() {
   const doc1 = documents.find(d => d.id === doc1Id)
 
   const [mcqs, setMcqs] = useState<MCQ[]>([])
-  const [numMcqs, setNumMcqs] = useState(10)
+  const [numMcqs, setNumMcqs] = useState(5)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -56,21 +56,59 @@ export default function McqPage() {
       const pdfBlob = await downloadPdf(doc1.id)
       const file = new File([pdfBlob], doc1.name || 'document.pdf', { type: 'application/pdf' })
 
-      const result = await generateMcqs(file, numMcqs, abortControllerRef.current.signal)
+      // Create a timeout promise (10 minutes for MCQ generation with local model)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out after 10 minutes. The model is taking too long. Try with fewer MCQs (3-5).')), 600000)
+      )
+
+      const result = await Promise.race([
+        generateMcqs(file, numMcqs, abortControllerRef.current.signal),
+        timeoutPromise
+      ])
+      
+      console.log('MCQ Response:', result) // Debug log
+      
+      // Handle both array and object responses
+      let mcqsList = Array.isArray(result) ? result : (result?.mcqs || [])
+      
+      if (!Array.isArray(mcqsList)) {
+        console.error('Invalid MCQ format:', mcqsList)
+        setError('Invalid response format from server')
+        return
+      }
+      
+      if (mcqsList.length === 0) {
+        setError('No MCQs generated. The model may have failed to generate valid questions. Try with fewer MCQs (5-10).')
+        return
+      }
+      
       // Filter valid MCQs
-      const validMcqs = result.mcqs.filter(
+      const validMcqs = mcqsList.filter(
         (mcq: any) =>
           typeof mcq === 'object' &&
           mcq.question &&
+          typeof mcq.question === 'string' &&
           mcq.options &&
-          Array.isArray(mcq.options)
+          Array.isArray(mcq.options) &&
+          mcq.options.length >= 2 &&
+          (mcq.correct_answer !== undefined && mcq.correct_answer !== null)
       ) as MCQ[]
+      
+      console.log('Filtered MCQs:', validMcqs) // Debug log
+      
+      if (validMcqs.length === 0) {
+        setError('No valid MCQs found in response. The model may need adjustment. Try with fewer MCQs (5-10).')
+        return
+      }
+      
       setMcqs(validMcqs)
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         return
       }
-      setError(err instanceof Error ? err.message : 'Failed to generate MCQs')
+      console.error('MCQ Generation Error:', err) // Debug log
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate MCQs'
+      setError(errorMessage)
     } finally {
       setIsGenerating(false)
     }
@@ -158,26 +196,26 @@ export default function McqPage() {
             </Card>
 
             {/* MCQ Settings */}
-            {!mcqs.length && !isGenerating && (
+            {mcqs.length === 0 && !isGenerating && (
               <Card className="glass-effect border-primary/20">
                 <CardHeader>
                   <CardTitle>Generate Settings</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
+                    <div className="space-y-2">
                     <label className="text-sm font-medium">
                       Number of MCQs: <span className="text-primary">{numMcqs}</span>
                     </label>
                     <input
                       type="range"
-                      min="5"
-                      max="50"
+                      min="3"
+                      max="20"
                       value={numMcqs}
                       onChange={e => setNumMcqs(parseInt(e.target.value))}
                       className="w-full h-2 bg-muted rounded-lg cursor-pointer"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Select between 5 and 50 questions
+                      Select between 3 and 20 questions (fewer = faster generation)
                     </p>
                   </div>
                   <Button
@@ -194,14 +232,30 @@ export default function McqPage() {
             {/* Loading State */}
             {isGenerating && (
               <Card className="glass-effect border-primary/20">
-                <CardContent className="py-8">
-                  <div className="flex items-center justify-center gap-3">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <div>
-                      <p className="font-medium">Generating MCQs...</p>
-                      <p className="text-xs text-muted-foreground">
-                        Creating {numMcqs} questions
-                      </p>
+                <CardContent className="py-12">
+                  <div className="text-center space-y-4">
+                    <div className="flex items-center justify-center gap-3">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <div className="text-left">
+                        <p className="font-semibold text-lg">Generating MCQs...</p>
+                        <p className="text-sm text-muted-foreground">
+                          Please wait, this may take 2-5 minutes
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-4 space-y-2 max-w-md mx-auto">
+                      <div className="flex items-start gap-2 text-sm">
+                        <span className="text-muted-foreground">📄</span>
+                        <span className="text-muted-foreground">Processing {numMcqs} questions...</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <span className="text-muted-foreground">🤖</span>
+                        <span className="text-muted-foreground">AI model analyzing your document...</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-xs text-muted-foreground pt-2">
+                        <span>💡</span>
+                        <span>Tip: Fewer questions (3-5) generate faster. You can try again with fewer if this takes too long.</span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -224,8 +278,8 @@ export default function McqPage() {
               </Card>
             )}
 
-            {/* MCQs Display */}
-            {mcqs.length > 0 && (
+            {/* MCQs Display - Only show when mcqs are loaded and no error */}
+            {mcqs.length > 0 && !error && (
               <Card className="glass-effect border-primary/20">
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -253,7 +307,11 @@ export default function McqPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setNumMcqs(10)}
+                        onClick={() => {
+                          setMcqs([])
+                          setShowAnswers(false)
+                          setSelectedAnswers({})
+                        }}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -328,8 +386,21 @@ export default function McqPage() {
                       onClick={() => {
                         setShowAnswers(false)
                         setSelectedAnswers({})
-                        setNumMcqs(10)
                       }}
+                      className="w-full"
+                    >
+                      Reset Answers
+                    </Button>
+                  )}
+
+                  {showAnswers && (
+                    <Button
+                      onClick={() => {
+                        setMcqs([])
+                        setShowAnswers(false)
+                        setSelectedAnswers({})
+                      }}
+                      variant="outline"
                       className="w-full"
                     >
                       Generate New MCQs

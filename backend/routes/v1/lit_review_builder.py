@@ -84,9 +84,32 @@ async def generate_lit_review(files: List[UploadFile] = File(...), user_id: str 
     
     try:
         response = model.generate_content(prompt)
+        
+        # Check if the response was blocked
+        if not response.candidates or len(response.candidates) == 0:
+            # Check if there's feedback about blocking
+            if hasattr(response, 'prompt_feedback') and response.prompt_feedback:
+                if hasattr(response.prompt_feedback, 'block_reason') and response.prompt_feedback.block_reason:
+                    return {
+                        "files_processed": all_file_info,
+                        "literature_review": f"⚠️ **Content Blocked**: The Gemini API blocked this request due to safety filters. This may happen with certain document content. Please try:\n1. Using a different document\n2. Try again (sometimes it works on retry)\n\nOriginal block reason: {response.prompt_feedback.block_reason}"
+                    }
+            
+            return {
+                "files_processed": all_file_info,
+                "literature_review": "⚠️ **Error**: The API returned no response. This may be due to content safety filters or rate limiting. Please try again in a moment."
+            }
+        
         lit_review_result = response.text
     except Exception as e:
-        lit_review_result = f"Error generating literature review: {str(e)}"
+        error_msg = str(e)
+        if "empty" in error_msg.lower() and "candidates" in error_msg.lower():
+            return {
+                "files_processed": all_file_info,
+                "literature_review": f"⚠️ **Content Blocked**: The Gemini API safety filters blocked this request. This may happen with certain document content. Please try:\n1. Using a different document\n2. Try generating again\n\nError details: {error_msg}"
+            }
+        
+        lit_review_result = f"⚠️ **Error generating literature review**: {error_msg}"
 
     # 5️⃣ Return result + file info
     return {
