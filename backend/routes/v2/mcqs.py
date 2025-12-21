@@ -53,11 +53,15 @@ def parse_mcq_response(mcqs_json: str):
 @mcqs.post("/generate-mcqs/")
 async def generate_mcqs_from_pdf(
     file: UploadFile = File(...),
-    total_mcqs: int = Form(...)
+    total_mcqs: int = Form(default=10)
 ):
     """
-    total_mcqs is provided by frontend
+    Generate MCQs from PDF with default limit of 10.
+    total_mcqs defaults to 10 but can be overridden (kept low for resource optimization)
     """
+
+    # Cap total_mcqs to a maximum of 20 for resource optimization (8GB RAM, CPU only)
+    total_mcqs = min(total_mcqs, 20)
 
     # Save PDF temporarily
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
@@ -113,11 +117,12 @@ async def generate_mcqs_from_pdf(
                     print(f"Error processing MCQ: {e}")
                     continue
 
-    # Trim to total_mcqs requested
+    # Trim to total_mcqs requested (capped at 20)
     all_mcqs = all_mcqs[:total_mcqs]
 
     return {
         "filename": file.filename,
+        "requested_mcqs": total_mcqs,
         "requested_mcqs_per_chunk": mcqs_per_chunk,
         "total_chunks": len(chunks),
         "mcqs": all_mcqs,

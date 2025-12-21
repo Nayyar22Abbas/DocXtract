@@ -1,0 +1,26 @@
+# Backend uploads and temporary files
+backend/uploads/
+backend/__pycache__/
+backend/.venv/
+backend/venv/
+backend/*.pyc
+backend/.env
+backend/.env.local
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
+frontend/.env.local
+frontend/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db

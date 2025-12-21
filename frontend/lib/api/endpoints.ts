@@ -231,8 +231,9 @@ export async function chatWithPdf(pdfId: string, question: string, signal?: Abor
     method: 'POST',
     headers: {
       ...authHeaders(),
+      'Content-Type': 'application/json',
     },
-    body: question,
+    body: JSON.stringify({ question }),
     signal,
   })
 

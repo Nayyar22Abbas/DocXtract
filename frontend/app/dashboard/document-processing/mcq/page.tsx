@@ -25,12 +25,14 @@ export default function McqPage() {
   const doc1 = documents.find(d => d.id === doc1Id)
 
   const [mcqs, setMcqs] = useState<MCQ[]>([])
-  const [numMcqs, setNumMcqs] = useState(5)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: string | number }>({})
   const [showAnswers, setShowAnswers] = useState(false)
+  
+  // Fixed to 10 MCQs for resource optimization
+  const NUM_MCQS = 10
 
   // Always abort pending requests on unmount
   useEffect(() => {
@@ -62,7 +64,7 @@ export default function McqPage() {
       )
 
       const result = await Promise.race([
-        generateMcqs(file, numMcqs, abortControllerRef.current.signal),
+        generateMcqs(file, NUM_MCQS, abortControllerRef.current.signal),
         timeoutPromise
       ])
       
@@ -195,36 +197,26 @@ export default function McqPage() {
               </CardHeader>
             </Card>
 
-            {/* MCQ Settings */}
+            {/* MCQ Settings - Removed, now fixed to 10 MCQs */}
             {mcqs.length === 0 && !isGenerating && (
               <Card className="glass-effect border-primary/20">
                 <CardHeader>
-                  <CardTitle>Generate Settings</CardTitle>
+                  <CardTitle>Generate MCQs</CardTitle>
+                  <CardDescription>
+                    Generate {NUM_MCQS} practice questions from your document
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Number of MCQs: <span className="text-primary">{numMcqs}</span>
-                    </label>
-                    <input
-                      type="range"
-                      min="3"
-                      max="20"
-                      value={numMcqs}
-                      onChange={e => setNumMcqs(parseInt(e.target.value))}
-                      className="w-full h-2 bg-muted rounded-lg cursor-pointer"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Select between 3 and 20 questions (fewer = faster generation)
-                    </p>
-                  </div>
                   <Button
                     onClick={handleGenerateMcqs}
                     disabled={isGenerating || !doc1}
                     className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
                   >
-                    Generate MCQs
+                    Generate {NUM_MCQS} MCQs
                   </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Optimized for resource efficiency - generates 10 questions
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -246,7 +238,7 @@ export default function McqPage() {
                     <div className="pt-4 space-y-2 max-w-md mx-auto">
                       <div className="flex items-start gap-2 text-sm">
                         <span className="text-muted-foreground">📄</span>
-                        <span className="text-muted-foreground">Processing {numMcqs} questions...</span>
+                        <span className="text-muted-foreground">Processing {NUM_MCQS} questions...</span>
                       </div>
                       <div className="flex items-start gap-2 text-sm">
                         <span className="text-muted-foreground">🤖</span>
