@@ -26,6 +26,7 @@ from routes.v2.flashcard_citation import flashcardWithcitation
 
 from routes.v2.mcqs import mcqs
 from routes.v2.quiz_model import quiz_model_router
+from routes.v2.insight_generation import insight_router
 import os
 
 
@@ -81,6 +82,7 @@ app.include_router(quiz_model_router,prefix="/v2/quiz", tags=["model"])
 app.include_router(mcqs,prefix="/mcqgeneration", tags=["model"])
 app.include_router(flashcard,prefix="/flashcard", tags=["model"])
 app.include_router(flashcardWithcitation,prefix="/flashcardwithcitation", tags=["model"])
+app.include_router(insight_router, prefix="/insight/v2", tags=["insight"])
 
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
 

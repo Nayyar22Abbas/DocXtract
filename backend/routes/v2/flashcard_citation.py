@@ -53,26 +53,52 @@ TEXT:
     return parse_flashcards_with_source(raw_text)
 
 # --- Parse flashcards ---
+# --- Parse flashcards with Regex and Logging ---
+import re
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 def parse_flashcards_with_source(output):
     """
-    Parses LLM output into structured flashcards with difficulty and source line.
+    Parses LLM output into structured flashcards with difficulty and source line using Regex.
+    Expected format:
+    Q: <question>
+    A: <answer>
+    Source Line: <number>
     """
     cards = []
-    blocks = output.split("Q:")
-
-    for block in blocks[1:]:
+    
+    # Regex pattern to capture Q, A, and Source Line
+    # Supports "Q:", "Question:", "A:", "Answer:", "Source Line:", "Source:"
+    # Flags: re.IGNORECASE (for case insensitivity), re.DOTALL (so . matches newlines if needed, though we handle splits)
+    
+    # We first split by "Q:" or "Question:" to separate blocks
+    # Then parse each block
+    
+    # Normalize Q/A/Source markers to simplify splitting if regex split is too complex
+    # But a regex iterator is often cleaner.
+    
+    pattern = re.compile(
+        r"(?:Q|Question):\s*(?P<question>.*?)\s*(?:A|Answer):\s*(?P<answer>.*?)\s*(?:Source Line|Source|Line):\s*(?P<source>\d+)", 
+        re.IGNORECASE | re.DOTALL
+    )
+    
+    matches = pattern.finditer(output)
+    
+    for match in matches:
         try:
-            q, rest = block.split("A:")
-            a, source = rest.split("Source Line:")
-            
-            question = q.strip()
-            answer = a.strip()
-            line_num = int(source.strip())
+            question = match.group("question").strip()
+            answer = match.group("answer").strip()
+            line_num = int(match.group("source").strip())
 
             # Difficulty logic
-            if len(answer.split()) <= 8:
+            word_count = len(answer.split())
+            if word_count <= 8:
                 difficulty = "Easy"
-            elif len(answer.split()) <= 20:
+            elif word_count <= 20:
                 difficulty = "Medium"
             else:
                 difficulty = "Hard"
@@ -83,8 +109,13 @@ def parse_flashcards_with_source(output):
                 "difficulty": difficulty,
                 "source_line": line_num
             })
-        except Exception:
+        except Exception as e:
+            logger.error(f"Failed to parse match: {match.group(0)} | Error: {e}")
             continue
+
+    if not cards:
+        logger.warning("No flashcards parsed. Raw LLM output:")
+        logger.warning(output)
 
     return cards
 
