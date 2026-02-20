@@ -47,7 +47,7 @@ async def generate_quiz_model(
         "user_id": user_id,
         "document_type": quiz_data.get("document_type", document_type),
         "quiz": quiz_data.get("quiz"),
-        "model": "Mistral-7B-v0.2-Local",
+        "model": "Gemini-2.5-Flash",
         "created_at": datetime.utcnow()
     }
     

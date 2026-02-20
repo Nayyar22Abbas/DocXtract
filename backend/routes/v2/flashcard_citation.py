@@ -1,88 +1,82 @@
-from fastapi import FastAPI, Form, UploadFile, File, APIRouter
-import shutil
+import google.generativeai as genai
 import os
+import re
+import logging
 import pdfplumber
-from routes.v2.model_load import llm
+import shutil
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form
+from v2_model_services.Pdf_plumber_text_extraction import extract_text_from_pdf
+from v2_model_services.text_chunking import chunk_text
+from v2_model_services.embeddding_faiss_index import build_index, retrieve
+from dotenv import load_dotenv
+
+load_dotenv()
+API_KEY = os.getenv("GOOGLE_API_KEY")
+if API_KEY:
+    genai.configure(api_key=API_KEY)
 
 flashcardWithcitation = APIRouter()
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# --- PDF Extraction with line numbers ---
-def extract_text_with_lines(path):
-    """
-    Extracts text from the first 3 pages of a PDF.
-    Returns a list of dicts with page, line_number, and text.
-    """
-    lines = []
-    with pdfplumber.open(path) as pdf:
-        for page_num, page in enumerate(pdf.pages[:3], start=1):
-            page_text = page.extract_text()
-            if page_text:
-                for idx, line in enumerate(page_text.splitlines(), start=1):
-                    if line.strip():
-                        lines.append({
-                            "page": page_num,
-                            "line_number": idx,
-                            "text": line.strip()
-                        })
-    return lines
-
-# --- Generate flashcards using LLM ---
-def generate_flashcards(lines, max_cards):
-    """
-    Send numbered lines to LLM and ask it to generate flashcards.
-    """
-    numbered_text = "\n".join([f"{i['line_number']}|||{i['text']}" for i in lines])
-   
-    prompt = f"""
-You are an intelligent AI tutor.
-
-Extract {max_cards} important concepts from the text below and
-convert each into a flashcard in this format:
-
-Q: <question>
-A: <concise answer>
-Source Line: <line number>
-
-TEXT:
-{numbered_text}
-"""
-    output = llm(prompt, max_tokens=600)  # increase max_tokens for longer PDFs
-    raw_text = output["choices"][0]["text"]  # type: ignore
-    return parse_flashcards_with_source(raw_text)
-
-# --- Parse flashcards ---
-# --- Parse flashcards with Regex and Logging ---
-import re
-import logging
-
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def parse_flashcards_with_source(output):
+# --- Generate flashcards using Gemini API ---
+async def generate_flashcards_gemini(pdf_path: str, max_cards: int = 5):
     """
-    Parses LLM output into structured flashcards with difficulty and source line using Regex.
+    Generates flashcards with source citations using Gemini API.
+    """
+    # 1. Extract text
+    text = extract_text_from_pdf(pdf_path)
+    if not text:
+        return None
+
+    # 2. Chunk text
+    chunks = chunk_text(text, chunk_size=800, overlap=100)
+    
+    # 3. Build index
+    index, _ = build_index(chunks)
+    
+    # 4. Context retrieval
+    query = "Important concepts, definitions, and facts for learning."
+    context_chunks = retrieve(query, chunks, index)
+
+    # 5. Gemini Prompt
+    prompt = f"""
+You are DocXtract Academia. Extract {max_cards} flashcards from the context.
+Each flashcard MUST have a specific citation string from the context.
+
+FORMAT:
+Q: <question>
+A: <answer>
+Source: <exact quote or sentence from context>
+
+CONTEXT:
+{context_chunks}
+"""
+
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(prompt)
+        response_text = response.text
+        return parse_flashcards_gemini_output(response_text) # Renamed to avoid conflict and clarify purpose
+    except Exception as e:
+        print(f"Error in Gemini flashcards: {e}")
+        return []
+
+def parse_flashcards_gemini_output(output):
+    """
+    Parses Gemini LLM output into structured flashcards with difficulty and source line using Regex.
     Expected format:
     Q: <question>
     A: <answer>
-    Source Line: <number>
+    Source: <exact quote or sentence from context>
     """
     cards = []
     
-    # Regex pattern to capture Q, A, and Source Line
-    # Supports "Q:", "Question:", "A:", "Answer:", "Source Line:", "Source:"
-    # Flags: re.IGNORECASE (for case insensitivity), re.DOTALL (so . matches newlines if needed, though we handle splits)
-    
-    # We first split by "Q:" or "Question:" to separate blocks
-    # Then parse each block
-    
-    # Normalize Q/A/Source markers to simplify splitting if regex split is too complex
-    # But a regex iterator is often cleaner.
-    
     pattern = re.compile(
-        r"(?:Q|Question):\s*(?P<question>.*?)\s*(?:A|Answer):\s*(?P<answer>.*?)\s*(?:Source Line|Source|Line):\s*(?P<source>\d+)", 
+        r"(?:Q|Question):\s*(?P<question>.*?)\s*(?:A|Answer):\s*(?P<answer>.*?)\s*(?:Source|Source Line):\s*(?P<source>.*?)(?=\n(?:Q|Question):|\Z)", 
         re.IGNORECASE | re.DOTALL
     )
     
@@ -92,9 +86,9 @@ def parse_flashcards_with_source(output):
         try:
             question = match.group("question").strip()
             answer = match.group("answer").strip()
-            line_num = int(match.group("source").strip())
+            source_text = match.group("source").strip()
 
-            # Difficulty logic
+            # Difficulty logic based on answer length
             word_count = len(answer.split())
             if word_count <= 8:
                 difficulty = "Easy"
@@ -107,7 +101,7 @@ def parse_flashcards_with_source(output):
                 "question": question,
                 "answer": answer,
                 "difficulty": difficulty,
-                "source_line": line_num
+                "source_text": source_text # Changed from source_line to source_text for Gemini output
             })
         except Exception as e:
             logger.error(f"Failed to parse match: {match.group(0)} | Error: {e}")
@@ -133,16 +127,11 @@ async def generate_flashcards_api(
     with open(path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # Extract text with line numbers
-    lines = extract_text_with_lines(path)
-    if not lines:
-        return {"error": "No readable text found in PDF. Is it scanned?"}
-
     # Generate flashcards
-    flashcards = generate_flashcards(lines, max_cards=max_cards)
+    flashcards = await generate_flashcards_gemini(path, max_cards=max_cards)
 
     return {
-        "model": "Mistral-7B (via llm callable)",
+        "model": "Gemini-2.5-Flash",
         "total_flashcards": len(flashcards),
         "flashcards": flashcards
     }

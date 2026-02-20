@@ -1,13 +1,19 @@
-import json
-import re
-from routes.v2.model_load import llm
+import os
+import google.generativeai as genai
 from v2_model_services.Pdf_plumber_text_extraction import extract_text_from_pdf
 from v2_model_services.text_chunking import chunk_text
 from v2_model_services.embeddding_faiss_index import build_index, retrieve
+from dotenv import load_dotenv
+
+load_dotenv()
+API_KEY = os.getenv("GOOGLE_API_KEY")
+if API_KEY:
+    genai.configure(api_key=API_KEY)
 
 async def generate_quiz_mistral(pdf_path: str, document_type: str = "Research Paper"):
     """
-    Generates a quiz using Mistral and RAG based on the provided PDF.
+    Generates a quiz using Gemini API based on the provided PDF.
+    Keeping function name for cross-file compatibility.
     """
     # 1. Extract text
     text = extract_text_from_pdf(pdf_path)
@@ -15,19 +21,18 @@ async def generate_quiz_mistral(pdf_path: str, document_type: str = "Research Pa
         return None
 
     # 2. Chunk text
-    chunks = chunk_text(text, chunk_size=600, overlap=100)
+    chunks = chunk_text(text, chunk_size=1000, overlap=100) # Gemini can handle larger chunks
     
     # 3. Build index
     index, _ = build_index(chunks)
     
     # 4. Retrieve context for quiz generation
-    # We want a broad coverage, so we query for the main concepts and relationships
     query = "The main concepts, section relationships, and critical reasoning details of the document for educational assessment."
     context = retrieve(query, chunks, index)
 
-    # 5. Mistral Prompt
+    # 5. Gemini Prompt
     prompt = f"""
-[INST] You are DocXtract Academia, an expert educational assessment generator.
+You are DocXtract Academia, an expert educational assessment generator.
 Your task is to generate a comprehension-focused quiz STRICTLY based on the provided context.
 Do not introduce information that is not present in the document.
 
@@ -35,22 +40,10 @@ Do not introduce information that is not present in the document.
 RULES & CONSTRAINTS
 --------------------------------------------------
 - Use clear, academic language suitable for university students
-- Focus on understanding, analysis, and application
-- Avoid trivial or purely factual recall
-- Questions must be answerable using ONLY the provided context
 - Return EXACTLY 10 questions total (6 MCQs, 2 Short Answer, 2 True/False)
+- Return EXACTLY in JSON format.
 
---------------------------------------------------
-MCQ RULES
---------------------------------------------------
-- Exactly 4 options per MCQ. Only ONE correct answer.
-- Shuffle correct answer positions.
-
---------------------------------------------------
-OUTPUT FORMAT (STRICT JSON)
---------------------------------------------------
-Return the response in the following JSON structure ONLY. Do not include any other text.
-
+OUTPUT FORMAT (STRICT JSON):
 {{
   "document_type": "{document_type}",
   "quiz": {{
@@ -80,16 +73,14 @@ Return the response in the following JSON structure ONLY. Do not include any oth
   }}
 }}
 
---------------------------------------------------
-CONTEXT
---------------------------------------------------
+CONTEXT:
 {context}
-[/INST]"""
+"""
 
     try:
-        # 0.2 temperature is ideal for factual quizzes to prevent hallucinations.
-        output = llm(prompt, max_tokens=1024, temperature=0.2)
-        response_text = output["choices"][0]["text"]
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(prompt)
+        response_text = response.text
         
         # Extract JSON from the response
         match = re.search(r"\{.*\}", response_text, re.DOTALL)
