@@ -56,25 +56,25 @@ Return the response in the following JSON structure ONLY. Do not include any oth
   "quiz": {{
     "mcqs": [
       {{
-        "question": "",
-        "options": {{ "A": "", "B": "", "C": "", "D": "" }},
-        "correct_answer": "A | B | C | D",
-        "difficulty": "Easy | Medium | Hard",
-        "explanation": ""
+        "question": "Question text here",
+        "options": ["Option A", "Option B", "Option C", "Option D"],
+        "correct_answer": "Option A",
+        "difficulty": "Easy",
+        "explanation": "Why this is correct"
       }}
     ],
     "short_answer": [
       {{
-        "question": "",
-        "sample_answer": "",
-        "difficulty": "Medium | Hard"
+        "question": "Question text here",
+        "sample_answer": "Sample answer text",
+        "difficulty": "Medium"
       }}
     ],
     "true_false": [
       {{
-        "statement": "",
-        "correct_answer": true,
-        "justification": ""
+        "statement": "Statement text here",
+        "answer": true,
+        "explanation": "Why this is true/false"
       }}
     ]
   }}

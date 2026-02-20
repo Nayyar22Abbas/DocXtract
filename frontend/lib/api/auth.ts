@@ -1,4 +1,4 @@
-export const API_BASE = (process.env.NEXT_PUBLIC_API_URL as string | undefined) ?? 'http://34.228.38.213:8000'
+export const API_BASE = (process.env.NEXT_PUBLIC_API_URL as string | undefined) ?? 'http://127.0.0.1:8000'
 
 const TOKEN_KEY = 'dx_access_token'
 const USERNAME_KEY = 'dx_username'

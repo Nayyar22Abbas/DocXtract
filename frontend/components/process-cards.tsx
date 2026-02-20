@@ -15,12 +15,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export type ProcessType =
   | 'summarize'
-  | 'chapters'
-  | 'citation'
-  | 'qa'
-  | 'concepts'
   | 'comparison'
-  | 'insights'
+  | 'literature-review'
+  | 'quiz'
+  | 'chat'
+  | 'mcq'
 
 interface ProcessCardsProps {
   selectedDocIds?: string[]
@@ -40,66 +39,57 @@ interface ProcessCard {
 const PROCESS_CARDS: ProcessCard[] = [
   {
     id: 'summarize',
-    title: 'Summarize',
-    description: 'Generate a concise summary of your document',
+    title: 'Summarize Document',
+    description: 'Generate summary + chapter-wise summaries',
     icon: <FileText className="h-8 w-8" />,
     color: 'from-blue-500 to-blue-600',
     path: '/dashboard/document-processing/summarize',
     requiresMultipleDocs: false,
   },
   {
-    id: 'chapters',
-    title: 'Chapter-wise Summary',
-    description: 'View AI-generated summaries for each chapter',
-    icon: <BookOpen className="h-8 w-8" />,
-    color: 'from-teal-500 to-teal-600',
-    path: '/dashboard/document-processing/chapters',
-    requiresMultipleDocs: false,
-  },
-  {
-    id: 'citation',
-    title: 'Citation Analysis',
-    description: 'Analyze citations and references in your document',
-    icon: <BookOpen className="h-8 w-8" />,
-    color: 'from-purple-500 to-purple-600',
-    path: '/dashboard/document-processing/citation',
-    requiresMultipleDocs: false,
-  },
-  {
-    id: 'qa',
-    title: 'Q&A Chatbot',
-    description: 'Ask questions about your document content',
+    id: 'chat',
+    title: 'PDF Chat',
+    description: 'Ask questions about your document',
     icon: <MessageSquare className="h-8 w-8" />,
     color: 'from-green-500 to-green-600',
-    path: '/dashboard/document-processing/qa',
+    path: '/dashboard/document-processing/chat',
     requiresMultipleDocs: false,
   },
   {
-    id: 'concepts',
-    title: 'Concept Graphs',
-    description: 'Visualize key concepts and relationships',
+    id: 'quiz',
+    title: 'Generate Quiz',
+    description: 'Generate and solve quizzes from documents',
+    icon: <BookOpen className="h-8 w-8" />,
+    color: 'from-teal-500 to-teal-600',
+    path: '/dashboard/document-processing/quiz',
+    requiresMultipleDocs: false,
+  },
+  {
+    id: 'mcq',
+    title: 'Generate MCQs',
+    description: 'Create multiple choice questions from content',
+    icon: <BarChart3 className="h-8 w-8" />,
+    color: 'from-purple-500 to-purple-600',
+    path: '/dashboard/document-processing/mcq',
+    requiresMultipleDocs: false,
+  },
+  {
+    id: 'literature-review',
+    title: 'Literature Review',
+    description: 'Synthesize multiple research papers',
     icon: <GitBranch className="h-8 w-8" />,
     color: 'from-orange-500 to-orange-600',
-    path: '/dashboard/document-processing/concepts',
+    path: '/dashboard/document-processing/literature-review',
     requiresMultipleDocs: false,
   },
   {
     id: 'comparison',
-    title: 'Document Comparison',
+    title: 'Compare Documents',
     description: 'Compare two documents side by side',
-    icon: <BarChart3 className="h-8 w-8" />,
+    icon: <Lightbulb className="h-8 w-8" />,
     color: 'from-pink-500 to-pink-600',
     path: '/dashboard/document-processing/comparison',
     requiresMultipleDocs: true,
-  },
-  {
-    id: 'insights',
-    title: 'Predictive Insight',
-    description: 'Get AI-powered insights and predictions',
-    icon: <Lightbulb className="h-8 w-8" />,
-    color: 'from-yellow-500 to-yellow-600',
-    path: '/dashboard/document-processing/insights',
-    requiresMultipleDocs: false,
   },
 ]
 

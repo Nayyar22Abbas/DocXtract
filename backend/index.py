@@ -39,6 +39,7 @@ app= FastAPI()
 origins=[
     "http://localhost:3000",  
     "http://localhost",
+    "http://127.0.0.1:3000",
     "https://doc-xtract-frontend.vercel.app/"  
 
 

@@ -38,6 +38,7 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      console.log(`Fetching documents for user: ${userId} from ${API_BASE}/list/list-pdfs/`)
       const res = await fetch(`${API_BASE}/list/list-pdfs/${encodeURIComponent(userId)}`, {
         method: 'GET',
         headers: {
@@ -46,7 +47,7 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       })
 
       if (!res.ok) {
-        console.error('Failed to fetch documents from backend')
+        console.error(`Failed to fetch documents: ${res.status} ${res.statusText}`)
         setDocuments([])
         return []
       }
@@ -71,10 +72,18 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
         } satisfies StoredDocument
       })
 
+      console.log(`Fetched ${docs.length} documents successfully`)
       setDocuments(docs)
       return docs
     } catch (error) {
       console.error('Error fetching documents from backend:', error)
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        })
+      }
       setDocuments([])
       return []
     } finally {
@@ -115,7 +124,7 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       formData.append('file', file)
       // NOTE: Backend defines user_id as a non-form parameter, so we send it in the query string
 
-      const res = await fetch(`${API_BASE}/summary/summarize-pdf/?user_id=${encodeURIComponent(userId)}`, {
+      const res = await fetch(`${API_BASE}/summary/summarize-pdf-combined/?user_id=${encodeURIComponent(userId)}`, {
         method: 'POST',
         headers: {
           ...authHeaders(),

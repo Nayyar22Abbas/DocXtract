@@ -12,10 +12,15 @@ pdfchat = APIRouter()
 
 
 @pdfchat.post("/chat-pdf/{pdf_id}")
-def chat_with_pdf(pdf_id: str, question: str = Body(...)):
+def chat_with_pdf(pdf_id: str, request_body: dict = Body(...)):
     """
     Chat with a specific PDF.
+    Expects: {"question": "your question here"}
     """
+    
+    question = request_body.get("question")
+    if not question:
+        raise HTTPException(status_code=400, detail="Question field is required")
     
     doc = pdfconn.find_one({"_id": ObjectId(pdf_id)})
     if not doc:

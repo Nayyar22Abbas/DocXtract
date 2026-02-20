@@ -76,7 +76,7 @@ async def generate_quiz_model(
             ],
             "true_false": [
                 {
-                    "statement": t["statement"]
+                    "statement": t.get("statement", "")
                 } for t in full_quiz.get("true_false", [])
             ]
         }

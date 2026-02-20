@@ -6,17 +6,20 @@ import { motion } from 'framer-motion'
 import { useDocuments } from '@/lib/providers/document-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, BarChart3 } from 'lucide-react'
-import { API_BASE, authHeaders, getUsername } from '@/lib/api/auth'
+import { ArrowLeft, BarChart3, Loader2, Copy } from 'lucide-react'
+import { comparePdfs, downloadPdf } from '@/lib/api/endpoints'
+import { getUsername } from '@/lib/api/auth'
+import ReactMarkdown from 'react-markdown'
 
 export default function ComparisonPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { documents, getFileForDoc } = useDocuments()
+  const { documents } = useDocuments()
 
   const [isComparing, setIsComparing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [comparisonSummary, setComparisonSummary] = useState<string | null>(null)
+  const [comparison, setComparison] = useState<string>('')
+  const [copied, setCopied] = useState(false)
 
   const doc1Id = searchParams.get('doc1')
   const doc2Id = searchParams.get('doc2')
@@ -27,78 +30,38 @@ export default function ComparisonPage() {
     if (!doc1 || !doc2) return
 
     setError(null)
-    setComparisonSummary(null)
+    setComparison('')
     setIsComparing(true)
 
     try {
-      // Try to get files from in-memory cache first
-      let file1 = getFileForDoc(doc1.id)
-      let file2 = getFileForDoc(doc2.id)
-
-      const username = getUsername() || 'ahsan'
-      if (!username) {
+      const userId = getUsername()
+      if (!userId) {
         setError('You must be logged in to compare documents.')
         setIsComparing(false)
         return
       }
 
-      // If either file is missing in this session, download it from the backend
-      const downloadIfNeeded = async (docId: string, fallbackName: string) => {
-        const res = await fetch(`${API_BASE}/pdfdownload/download-pdf/${encodeURIComponent(docId)}`, {
-          method: 'GET',
-          headers: {
-            ...authHeaders(),
-          },
-        })
+      // Download both PDFs
+      const blob1 = await downloadPdf(doc1.id)
+      const blob2 = await downloadPdf(doc2.id)
 
-        if (!res.ok) {
-          throw new Error('Failed to download document from server.')
-        }
+      const file1 = new File([blob1], doc1.name || 'document1.pdf', { type: 'application/pdf' })
+      const file2 = new File([blob2], doc2.name || 'document2.pdf', { type: 'application/pdf' })
 
-        const blob = await res.blob()
-        return new File([blob], fallbackName || 'document.pdf', { type: 'application/pdf' })
-      }
-
-      try {
-        if (!file1) {
-          file1 = await downloadIfNeeded(doc1.id, doc1.name)
-        }
-        if (!file2) {
-          file2 = await downloadIfNeeded(doc2.id, doc2.name)
-        }
-      } catch (downloadError: any) {
-        setError(downloadError.message || 'Failed to download one of the documents from server.')
-        setIsComparing(false)
-        return
-      }
-
-      const formData = new FormData()
-      formData.append('file1', file1)
-      formData.append('file2', file2)
-
-      const url = `${API_BASE}/ppdfcomparison/compare-pdfs/?user_id=${encodeURIComponent(username)}`
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          ...authHeaders(),
-        },
-        body: formData,
-      })
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => null)
-        const message = data?.detail || 'Failed to compare documents. Please try again.'
-        throw new Error(message)
-      }
-
-      const data = await response.json()
-      setComparisonSummary(data.comparison_summary || 'No comparison summary returned.')
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred during comparison.')
+      // Compare documents
+      const result = await comparePdfs(file1, file2, userId)
+      setComparison(result.comparison_summary)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to compare documents')
     } finally {
       setIsComparing(false)
     }
+  }
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(comparison)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
@@ -106,9 +69,9 @@ export default function ComparisonPage() {
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold">Document Comparison</h1>
+            <h1 className="text-4xl font-bold">Compare Documents</h1>
             <p className="text-muted-foreground text-lg mt-2">
-              Compare two documents side by side using AI-powered analysis
+              Analyze differences and similarities between two PDFs
             </p>
           </div>
           <Button
@@ -135,7 +98,7 @@ export default function ComparisonPage() {
                     <BarChart3 className="h-5 w-5" />
                     Document 1
                   </CardTitle>
-                  <CardDescription>{doc1.name}</CardDescription>
+                  <CardDescription className="truncate">{doc1.name}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
@@ -150,7 +113,7 @@ export default function ComparisonPage() {
                     <BarChart3 className="h-5 w-5" />
                     Document 2
                   </CardTitle>
-                  <CardDescription>{doc2.name}</CardDescription>
+                  <CardDescription className="truncate">{doc2.name}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
@@ -160,36 +123,99 @@ export default function ComparisonPage() {
               </Card>
             </div>
 
+            {/* Comparison Button & Results */}
             <Card className="glass-effect border-primary/20">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">
-                      Ready to compare these documents?
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      We&apos;ll analyze both files and highlight the most important similarities and differences.
-                    </p>
-                  </div>
-                  <Button onClick={handleCompare} disabled={isComparing}>
-                    {isComparing ? 'Comparing…' : 'Compare documents'}
+              <CardHeader>
+                <CardTitle>Comparison Analysis</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!comparison && !isComparing && (
+                  <Button
+                    onClick={handleCompare}
+                    disabled={isComparing}
+                    size="lg"
+                    className="w-full"
+                  >
+                    {isComparing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Comparing...
+                      </>
+                    ) : (
+                      'Start Comparison'
+                    )}
                   </Button>
-                </div>
+                )}
+
+                {isComparing && (
+                  <div className="flex items-center justify-center gap-3 py-8">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <div className="space-y-2">
+                      <p className="font-medium">Analyzing documents...</p>
+                      <p className="text-xs text-muted-foreground">
+                        This may take a moment
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {error && (
                   <div className="p-3 rounded-md bg-destructive/10 text-sm text-destructive">
                     {error}
+                    {error && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={handleCompare}
+                      >
+                        Try Again
+                      </Button>
+                    )}
                   </div>
                 )}
 
-                {comparisonSummary && (
-                  <div className="mt-4 p-4 rounded-lg bg-muted/50 max-h-[400px] overflow-auto whitespace-pre-wrap text-sm leading-relaxed">
-                    {comparisonSummary}
+                {comparison && (
+                  <div className="space-y-3">
+                    <div className="flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCopy}
+                        className="gap-2"
+                      >
+                        <Copy className="h-4 w-4" />
+                        {copied ? 'Copied!' : 'Copy'}
+                      </Button>
+                    </div>
+                    <div className="prose prose-invert max-w-none max-h-[500px] overflow-y-auto p-4 bg-muted/50 rounded-lg">
+                      <ReactMarkdown
+                        components={{
+                          h2: ({ node, ...props }) => <h2 className="text-xl font-bold mt-4 mb-2" {...props} />,
+                          h3: ({ node, ...props }) => <h3 className="text-lg font-semibold mt-3 mb-2" {...props} />,
+                          p: ({ node, ...props }) => <p className="mb-2 leading-relaxed text-sm" {...props} />,
+                          ul: ({ node, ...props }) => <ul className="list-disc list-inside mb-2 space-y-1" {...props} />,
+                          li: ({ node, ...props }) => <li className="text-sm" {...props} />,
+                        }}
+                      >
+                        {comparison}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 )}
               </CardContent>
             </Card>
           </motion.div>
+        )}
+
+        {(!doc1 || !doc2) && (
+          <Card className="glass-effect border-primary/20">
+            <CardContent className="py-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                Please select 2 documents to compare
+              </p>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
