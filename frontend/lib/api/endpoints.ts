@@ -356,3 +356,318 @@ export async function deletePdf(pdfId: string) {
 //   "message": "PDF deleted successfully",
 //   "pdf_id": string
 // }
+
+// ============================================================================
+// 9. FLASHCARDS GENERATION
+// ============================================================================
+export async function generateFlashcards(file: File, maxCards?: number, signal?: AbortSignal) {
+  const formData = new FormData()
+  formData.append('file', file)
+  if (maxCards) formData.append('max_cards', maxCards.toString())
+
+  const response = await fetch(`${API_BASE}/flashcard/generate-flashcards/`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+    signal,
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || 'Failed to generate flashcards')
+  }
+
+  return response.json()
+}
+
+// Response structure:
+// {
+//   "flashcards": [
+//     {
+//       "question": string,
+//       "answer": string,
+//       "difficulty": "Easy" | "Medium" | "Hard"
+//     },
+//     ...
+//   ]
+// }
+
+// ============================================================================
+// 10. FLASHCARDS WITH CITATION (Gemini-provided source text)
+// ============================================================================
+export async function generateFlashcardsWithCitation(file: File, maxCards?: number, signal?: AbortSignal) {
+  const formData = new FormData()
+  formData.append('file', file)
+  if (maxCards) formData.append('max_cards', maxCards.toString())
+
+  const response = await fetch(`${API_BASE}/flashcardwithcitation/generate-flashcards/`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+    signal,
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || 'Failed to generate flashcards with citation')
+  }
+
+  return response.json()
+}
+
+// Response structure:
+// {
+//   "model": "Gemini-2.5-Flash",
+//   "total_flashcards": number,
+//   "flashcards": [
+//     {
+//       "question": string,
+//       "answer": string,
+//       "difficulty": "Easy" | "Medium" | "Hard",
+//       "source_text": string // Direct quote from PDF
+//     },
+//     ...
+//   ]
+// }
+
+// ============================================================================
+// 11. CONCEPT GRAPH / INSIGHT GENERATION
+// ============================================================================
+export async function generateConceptGraph(
+  file: File,
+  useApi?: boolean,
+  maxConcepts?: number,
+  signal?: AbortSignal
+) {
+  const formData = new FormData()
+  formData.append('file', file)
+  if (useApi !== undefined) formData.append('use_api', useApi.toString())
+  if (maxConcepts) formData.append('max_concepts', maxConcepts.toString())
+
+  const response = await fetch(`${API_BASE}/insight/v2/concept-graph/`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+    signal,
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || 'Failed to generate concept graph')
+  }
+
+  return response.json()
+}
+
+// Response structure:
+// {
+//   "pdf_name": string,
+//   "engine": "Gemini API" | "Local Mistral",
+//   "graph": {
+//     "nodes": [
+//       {
+//         "id": string,
+//         "label": string,
+//         "type": "topic" | "entity"
+//       },
+//       ...
+//     ],
+//     "links": [
+//       {
+//         "source": string,
+//         "target": string,
+//         "relation": string
+//       },
+//       ...
+//     ]
+//   }
+// }
+
+// ============================================================================
+// 12. STUDY RECOMMENDATIONS - AUTO (Uses historical data)
+// ============================================================================
+export async function getAutoRecommendation(userId: string, includeAnalysis?: boolean, signal?: AbortSignal) {
+  const response = await fetch(`${API_BASE}/api/auto-recommendation`, {
+    method: 'POST',
+    headers: {
+      ...authHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      user_id: userId,
+      include_analysis: includeAnalysis !== false,
+    }),
+    signal,
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || 'Failed to generate recommendation')
+  }
+
+  return response.json()
+}
+
+// Response structure:
+// {
+//   "success": boolean,
+//   "data_source": "MongoDB (Auto-Aggregated from User History)",
+//   "recommendation": {
+//     "priority_subject": string,
+//     "recommended_topic": string,
+//     "recommended_daily_study_minutes": string,
+//     "reasoning": string,
+//     "motivation_message": string,
+//     "generated_at": string
+//   },
+//   "predictive_insights": {
+//     "quiz_trend": string,
+//     "average_quiz_score": number,
+//     "score_improvement": number,
+//     "study_consistency": string,
+//     "quizzes_analyzed": number,
+//     "previous_recommendations_analyzed": number,
+//     "subjects_enrolled": number,
+//     "weak_areas_identified": number
+//   },
+//   "status": string
+// }
+
+// ============================================================================
+// 13. STUDENT PROFILE / ANALYSIS
+// ============================================================================
+export async function getStudentProfile(userId: string, signal?: AbortSignal) {
+  const response = await fetch(`${API_BASE}/api/student-profile/${userId}`, {
+    method: 'GET',
+    headers: authHeaders(),
+    signal,
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || 'Failed to fetch student profile')
+  }
+
+  return response.json()
+}
+
+// Response structure:
+// {
+//   "success": boolean,
+//   "student_profile": {
+//     "user_id": string,
+//     "enrolled_subjects": string[],
+//     "quiz_trends": {
+//       "trend": string,
+//       "average_score": number,
+//       "improvement": number,
+//       "consistency": string,
+//       "recent_scores": number[]
+//     },
+//     "weak_topics": [string, number][],
+//     "study_time_pattern": {
+//       "average_daily_study_minutes": number,
+//       "pattern": string,
+//       "max_observed": number,
+//       "min_observed": number
+//     },
+//     "upcoming_exams": string[]
+//   },
+//   "insights": {
+//     "data_points_analyzed": number,
+//     "prediction_confidence": string,
+//     "trend_analysis": string,
+//     "weak_areas_identified": number,
+//     "upcoming_assessments": number
+//   }
+// }
+
+// ============================================================================
+// 14. STUDY RECOMMENDATIONS - MANUAL (User provides all data)
+// ============================================================================
+export interface RecommendationRequest {
+  subjects: string[]
+  quiz_scores: Record<string, number>
+  weak_topics: string[]
+  study_time: number
+  upcoming_exams: string[]
+  user_id?: string
+}
+
+export async function getManualRecommendation(data: RecommendationRequest, signal?: AbortSignal) {
+  const response = await fetch(`${API_BASE}/api/study-recommendation`, {
+    method: 'POST',
+    headers: {
+      ...authHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+    signal,
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || 'Failed to generate recommendation')
+  }
+
+  return response.json()
+}
+
+// Response structure:
+// {
+//   "success": boolean,
+//   "recommendation": {
+//     "priority_subject": string,
+//     "recommended_topic": string,
+//     "recommended_daily_study_minutes": string,
+//     "reasoning": string,
+//     "motivation_message": string,
+//     "generated_at": string,
+//     "user_id": string
+//   },
+//   "status": string
+// }
+
+// ============================================================================
+// 15. TOPIC GUIDANCE (Advanced recommendation)
+// ============================================================================
+export interface TopicGuidanceRequest {
+  subject: string
+  topic: string
+  weak_areas: string[]
+  study_time_available: number
+  user_id?: string
+}
+
+export async function getTopicGuidance(data: TopicGuidanceRequest, signal?: AbortSignal) {
+  const response = await fetch(`${API_BASE}/api/topic-guidance`, {
+    method: 'POST',
+    headers: {
+      ...authHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+    signal,
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || 'Failed to get topic guidance')
+  }
+
+  return response.json()
+}
+
+// Response structure:
+// {
+//   "success": boolean,
+//   "topic": string,
+//   "guidance": {
+//     "core_concepts": string[],
+//     "learning_path": string,
+//     "key_resources": string[],
+//     "practice_suggestions": string[],
+//     "estimated_study_time": string
+//   },
+//   "generated_at": string
+// }

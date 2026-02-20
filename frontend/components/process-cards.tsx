@@ -10,6 +10,7 @@ import {
   BarChart3,
   Lightbulb,
   ArrowRight,
+  Brain,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -20,6 +21,8 @@ export type ProcessType =
   | 'quiz'
   | 'chat'
   | 'mcq'
+  | 'citation'
+  | 'concepts'
 
 interface ProcessCardsProps {
   selectedDocIds?: string[]
@@ -34,6 +37,7 @@ interface ProcessCard {
   color: string
   path: string
   requiresMultipleDocs: boolean
+  requiresAnyDocument?: boolean
 }
 
 const PROCESS_CARDS: ProcessCard[] = [
@@ -45,6 +49,7 @@ const PROCESS_CARDS: ProcessCard[] = [
     color: 'from-blue-500 to-blue-600',
     path: '/dashboard/document-processing/summarize',
     requiresMultipleDocs: false,
+    requiresAnyDocument: true,
   },
   {
     id: 'chat',
@@ -54,6 +59,7 @@ const PROCESS_CARDS: ProcessCard[] = [
     color: 'from-green-500 to-green-600',
     path: '/dashboard/document-processing/chat',
     requiresMultipleDocs: false,
+    requiresAnyDocument: true,
   },
   {
     id: 'quiz',
@@ -63,6 +69,7 @@ const PROCESS_CARDS: ProcessCard[] = [
     color: 'from-teal-500 to-teal-600',
     path: '/dashboard/document-processing/quiz',
     requiresMultipleDocs: false,
+    requiresAnyDocument: true,
   },
   {
     id: 'mcq',
@@ -72,6 +79,7 @@ const PROCESS_CARDS: ProcessCard[] = [
     color: 'from-purple-500 to-purple-600',
     path: '/dashboard/document-processing/mcq',
     requiresMultipleDocs: false,
+    requiresAnyDocument: true,
   },
   {
     id: 'literature-review',
@@ -81,6 +89,7 @@ const PROCESS_CARDS: ProcessCard[] = [
     color: 'from-orange-500 to-orange-600',
     path: '/dashboard/document-processing/literature-review',
     requiresMultipleDocs: false,
+    requiresAnyDocument: true,
   },
   {
     id: 'comparison',
@@ -90,6 +99,27 @@ const PROCESS_CARDS: ProcessCard[] = [
     color: 'from-pink-500 to-pink-600',
     path: '/dashboard/document-processing/comparison',
     requiresMultipleDocs: true,
+    requiresAnyDocument: true,
+  },
+  {
+    id: 'citation',
+    title: 'Generate Flashcards',
+    description: 'Create flashcards with citations from PDFs',
+    icon: <BookOpen className="h-8 w-8" />,
+    color: 'from-indigo-500 to-indigo-600',
+    path: '/dashboard/document-processing/citation',
+    requiresMultipleDocs: false,
+    requiresAnyDocument: true,
+  },
+  {
+    id: 'concepts',
+    title: 'Concept Graph',
+    description: 'Visualize concepts and relationships',
+    icon: <Brain className="h-8 w-8" />,
+    color: 'from-cyan-500 to-cyan-600',
+    path: '/dashboard/document-processing/concepts',
+    requiresMultipleDocs: false,
+    requiresAnyDocument: true,
   },
 ]
 
@@ -97,15 +127,15 @@ export function ProcessCards({ selectedDocIds = [], onCardClick }: ProcessCardsP
   const router = useRouter()
 
   const handleCardClick = (card: ProcessCard) => {
-    // Check if card requires multiple docs
-    if (card.requiresMultipleDocs && selectedDocIds.length < 2) {
-      alert('Please select 2 documents for comparison')
+    // Check if card requires documents
+    if (card.requiresAnyDocument && selectedDocIds.length === 0) {
+      alert('Please select a document first')
       return
     }
 
-    // If card requires single doc but none selected
-    if (!card.requiresMultipleDocs && selectedDocIds.length === 0) {
-      alert('Please select a document first')
+    // Check if card requires multiple docs
+    if (card.requiresMultipleDocs && selectedDocIds.length < 2) {
+      alert('Please select 2 documents for comparison')
       return
     }
 
@@ -157,7 +187,7 @@ export function ProcessCards({ selectedDocIds = [], onCardClick }: ProcessCardsP
           const isDisabled = exactlyTwoSelected
             ? card.id !== 'comparison'
             : (card.requiresMultipleDocs && selectedDocIds.length < 2) ||
-              (!card.requiresMultipleDocs && selectedDocIds.length === 0)
+              (card.requiresAnyDocument && selectedDocIds.length === 0)
 
           return (
             <motion.div key={card.id} variants={fadeInUp}>
@@ -188,7 +218,9 @@ export function ProcessCards({ selectedDocIds = [], onCardClick }: ProcessCardsP
                     {isDisabled
                       ? exactlyTwoSelected && card.id !== 'comparison'
                         ? 'Only comparison is available with 2 documents'
-                        : 'Select document to start'
+                        : card.requiresAnyDocument
+                        ? 'Select document to start'
+                        : 'Start process'
                       : 'Start process'}
                     <ArrowRight className="h-4 w-4" />
                   </div>
