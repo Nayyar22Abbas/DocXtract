@@ -1,11 +1,14 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { ArrowRight, FileText, Zap, Shield, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { FuturisticBackground } from "@/components/futuristic-background"
+import { useAuth } from "@/lib/providers/auth-provider"
 
 const fadeInUp = {
   initial: { opacity: 0, y: 60 },
@@ -22,6 +25,20 @@ const staggerContainer = {
 }
 
 export default function HomePage() {
+  const { isAuthenticated, isReady } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (isReady && isAuthenticated) {
+      router.replace("/guide")
+    }
+  }, [isReady, isAuthenticated, router])
+
+  // Show nothing while checking auth or redirecting
+  if (!isReady || isAuthenticated) {
+    return null
+  }
+
   return (
     <div className="relative min-h-screen">
       {/* Hero Section */}

@@ -6,6 +6,7 @@ import { ArrowRight, BookOpen, FileText, Shield, Sparkles, Workflow } from "luci
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import TextType from "@/components/TextType"
 
 const fadeInUp = {
   initial: { opacity: 0, y: 40 },
@@ -40,7 +41,16 @@ export default function GuidePage() {
 
             <motion.div variants={fadeInUp} className="space-y-4">
               <h1 className="text-balance text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
-                Your command center for intelligent document workflows
+                <TextType
+                  text={["Your command center for intelligent document workflows"]}
+                  typingSpeed={50}
+                  pauseDuration={3000}
+                  showCursor
+                  cursorCharacter="_"
+                  cursorBlinkDuration={0.5}
+                  loop={false}
+                  className="inline"
+                />
               </h1>
               <p className="mx-auto max-w-3xl text-balance text-base md:text-lg text-muted-foreground">
                 This guide walks you through how DocXtract thinks about documents, how to get the most accurate
