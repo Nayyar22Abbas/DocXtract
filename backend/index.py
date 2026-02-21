@@ -15,6 +15,7 @@ from routes.v1.pdfcomparison import pdfcompare
 from routes.v1.lit_review_builder import lit_review_router
 from routes.v1.quiz import quiz_router
 from routes.v1.flashcard_citation import flashcard_citation_router
+from routes.v1.insight import insight_router
 
 from routes.v2.pdf_chat_model import modelpdfchat
 
@@ -66,6 +67,7 @@ app.include_router(pdfcompare,prefix="/ppdfcomparison", tags=["pdf comparison"])
 app.include_router(lit_review_router,prefix="/lit-review", tags=["Literature Review"])
 app.include_router(quiz_router,prefix="/v1/quiz", tags=["Quiz"])
 app.include_router(flashcard_citation_router,prefix="/flashcardwithcitation", tags=["Flashcards"])
+app.include_router(insight_router,prefix="/insight/v2", tags=["Insights"])
 
 #version 2 with model implementation
 
