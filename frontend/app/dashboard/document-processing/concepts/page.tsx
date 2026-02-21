@@ -10,8 +10,8 @@ import { ArrowLeft, FileText, Loader2, Network, Sparkles } from 'lucide-react'
 import { generateConceptGraph, downloadPdf } from '@/lib/api/endpoints'
 import { getUsername } from '@/lib/api/auth'
 import ConceptGraphVisualizer from '@/components/ConceptGraphVisualizer'
-import { HoverLetters } from '@/components/HoverLetters'
-import { MagicCard } from '@/components/MagicCard'
+import HoverLetters from '@/components/HoverLetters'
+import MagicCard from '@/components/MagicCard'
 
 interface Node {
   id: string

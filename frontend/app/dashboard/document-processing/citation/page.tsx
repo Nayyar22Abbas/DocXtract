@@ -9,8 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft, FileText, Loader2, Copy, RotateCcw, ChevronLeft, ChevronRight, Layers, Sparkles } from 'lucide-react'
 import { generateFlashcardsWithCitation, downloadPdf } from '@/lib/api/endpoints'
 import { getUsername } from '@/lib/api/auth'
-import { HoverLetters } from '@/components/HoverLetters'
-import { MagicCard } from '@/components/MagicCard'
+import HoverLetters from '@/components/HoverLetters'
+import MagicCard from '@/components/MagicCard'
 
 interface Flashcard {
   question: string

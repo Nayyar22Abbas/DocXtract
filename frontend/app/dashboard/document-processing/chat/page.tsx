@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Send, FileText, Loader2, MessageSquare, Sparkles } from 'lucide-react'
 import { chatWithPdf } from '@/lib/api/endpoints'
-import { HoverLetters } from '@/components/HoverLetters'
-import { MagicCard } from '@/components/MagicCard'
+import HoverLetters from '@/components/HoverLetters'
+import MagicCard from '@/components/MagicCard'
 
 interface Message {
   id: string
@@ -131,7 +131,7 @@ export default function ChatPage() {
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
-        </div>
+        </motion.div>
 
         {!doc1 && (
           <MagicCard className="glass-effect border-primary/20">

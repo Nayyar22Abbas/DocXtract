@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, FileText, Loader2, Copy, Edit2, CheckCircle2, ListChecks, Sparkles } from 'lucide-react'
 import { generateMcqs, downloadPdf } from '@/lib/api/endpoints'
-import { HoverLetters } from '@/components/HoverLetters'
-import { MagicCard } from '@/components/MagicCard'
+import HoverLetters from '@/components/HoverLetters'
+import MagicCard from '@/components/MagicCard'
 
 interface MCQ {
   question: string

@@ -9,8 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft, FileText, Loader2, Copy, CheckCircle2, XCircle, Brain, Sparkles } from 'lucide-react'
 import { generateQuizModel, getQuizSolution, downloadPdf } from '@/lib/api/endpoints'
 import { getUsername } from '@/lib/api/auth'
-import { HoverLetters } from '@/components/HoverLetters'
-import { MagicCard } from '@/components/MagicCard'
+import HoverLetters from '@/components/HoverLetters'
+import MagicCard from '@/components/MagicCard'
 
 interface MCQ {
   question: string

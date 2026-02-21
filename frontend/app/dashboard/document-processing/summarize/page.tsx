@@ -10,8 +10,8 @@ import { ArrowLeft, FileText, Loader2, Copy, Download, Sparkles } from 'lucide-r
 import { summarizePdfCombined, downloadPdf } from '@/lib/api/endpoints'
 import { getUsername } from '@/lib/api/auth'
 import ReactMarkdown from 'react-markdown'
-import { HoverLetters } from '@/components/HoverLetters'
-import { MagicCard } from '@/components/MagicCard'
+import HoverLetters from '@/components/HoverLetters'
+import MagicCard from '@/components/MagicCard'
 
 export default function SummarizePage() {
   const router = useRouter()
@@ -134,7 +134,7 @@ export default function SummarizePage() {
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
-        </div>
+        </motion.div>
 
         {!doc1 && (
           <MagicCard className="glass-effect border-primary/20">

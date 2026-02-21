@@ -10,8 +10,8 @@ import { ArrowLeft, BarChart3, Loader2, Copy, GitCompare, Sparkles, FileText } f
 import { comparePdfs, downloadPdf } from '@/lib/api/endpoints'
 import { getUsername } from '@/lib/api/auth'
 import ReactMarkdown from 'react-markdown'
-import { HoverLetters } from '@/components/HoverLetters'
-import { MagicCard } from '@/components/MagicCard'
+import HoverLetters from '@/components/HoverLetters'
+import MagicCard from '@/components/MagicCard'
 
 export default function ComparisonPage() {
   const router = useRouter()

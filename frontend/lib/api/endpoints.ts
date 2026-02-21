@@ -120,7 +120,7 @@ export async function generateLiteratureReview(files: File[], userId?: string, s
 // }
 
 // ============================================================================
-// 4. QUIZ GENERATION (Using Mistral Model)
+// 4. QUIZ GENERATION (Using Gemini API)
 // ============================================================================
 export async function generateQuizModel(file: File, documentType?: string, userId?: string, signal?: AbortSignal) {
   const formData = new FormData()
@@ -128,7 +128,7 @@ export async function generateQuizModel(file: File, documentType?: string, userI
   if (documentType) formData.append('document_type', documentType)
   if (userId) formData.append('user_id', userId)
 
-  const response = await fetch(`${API_BASE}/v2/quiz/generate-model`, {
+  const response = await fetch(`${API_BASE}/v1/quiz/generate`, {
     method: 'POST',
     headers: authHeaders(),
     body: formData,
@@ -176,7 +176,7 @@ export async function generateQuizModel(file: File, documentType?: string, userI
 // 5. GET QUIZ SOLUTION
 // ============================================================================
 export async function getQuizSolution(quizId: string, signal?: AbortSignal) {
-  const response = await fetch(`${API_BASE}/v2/quiz/solution/${quizId}`, {
+  const response = await fetch(`${API_BASE}/v1/quiz/solution/${quizId}`, {
     method: 'GET',
     headers: authHeaders(),
     signal,
