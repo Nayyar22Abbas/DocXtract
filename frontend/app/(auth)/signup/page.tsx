@@ -188,7 +188,7 @@ export default function SignupPage() {
                   )}
                 />
 
-                <Button type="submit" className="w-full h-11" disabled={isLoading || !!isOAuthLoading}>
+                <Button type="submit" className="w-full h-11 btn-glow-pulse" disabled={isLoading || !!isOAuthLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -211,7 +211,7 @@ export default function SignupPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full h-11 relative group hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-500/50 transition-all"
+                  className="w-full h-11 relative group hover:bg-red-50 dark:hover:bg-red-950/20 hover:border-red-500/50 transition-all btn-glow-pulse"
                   disabled={!!isOAuthLoading}
                   onClick={() => handleOAuth('google')}
                 >
@@ -247,7 +247,7 @@ export default function SignupPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full h-11 relative group hover:bg-gray-50 dark:hover:bg-gray-900/20 hover:border-gray-500/50 transition-all"
+                  className="w-full h-11 relative group hover:bg-gray-50 dark:hover:bg-gray-900/20 hover:border-gray-500/50 transition-all btn-glow-pulse"
                   disabled={!!isOAuthLoading}
                   onClick={() => handleOAuth('github')}
                 >
