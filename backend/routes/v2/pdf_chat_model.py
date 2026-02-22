@@ -16,7 +16,7 @@ pdf_indices = {}
 @modelpdfchat.post("/chat-pdf/{pdf_id}")
 def chat_with_pdf(pdf_id: str, question: str = Body(...)):
     """
-    Chat with a specific PDF using a local LLM.
+    Chat with a specific PDF using Gemini API.
     """
 
     # 1️⃣ Find PDF record
@@ -31,7 +31,8 @@ def chat_with_pdf(pdf_id: str, question: str = Body(...)):
 
     # 3️⃣ Extract text from PDF
     pdf_text = extract_text_from_pdf(file_path)
-    pdf_text = pdf_text[:5000]  # limit input size
+    # Gemini can handle much larger context than Mistral (up to 1M tokens), 
+    # but we'll still chunk for efficient retrieval.
     chunks = chunk_text(pdf_text)
     
     if pdf_id in pdf_indices:
@@ -42,10 +43,9 @@ def chat_with_pdf(pdf_id: str, question: str = Body(...)):
 
     # Retrieve relevant chunks
     context = retrieve(question, chunks, index)
-    print("Retrieved Context:", context)
 
-    # Ask local LLM
-    answer = ask_mistral(context, question)
+    # Ask Gemini API (via updated service)
+    answer = ask_mistral(context, question) # Name remains for compatibility
 
-    return {"answer": answer}
+    return {"answer": answer, "engine": "Gemini API"}
 

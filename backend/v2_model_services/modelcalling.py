@@ -1,17 +1,29 @@
-from routes.v2.model_load import llm
+import os
+import google.generativeai as genai
+from dotenv import load_dotenv
 
+load_dotenv()
+API_KEY = os.getenv("GOOGLE_API_KEY")
+if API_KEY:
+    genai.configure(api_key=API_KEY)
 
 def ask_mistral(context, question):
+    """
+    Unified calling function for v2 routes. Now uses Gemini API for enhanced performance.
+    """
     prompt = f"""
     You are an intelligent document assistant.
-
 
     Context:
     {context}
 
-
     Question:
     {question}
     """
-    output = llm(prompt, max_tokens=400, temperature=0.2)
-    return output["choices"][0]["text"] # type: ignore
+    
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"Error calling Gemini API: {str(e)}"

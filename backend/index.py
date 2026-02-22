@@ -14,15 +14,19 @@ from routes.v1.deletepdf import deletepdf
 from routes.v1.pdfcomparison import pdfcompare
 from routes.v1.lit_review_builder import lit_review_router
 from routes.v1.quiz import quiz_router
-from routes.v1.flashcard_citation import flashcard_citation_router
-from routes.v1.insight import insight_router
-from routes.v1.mcqs_gemini import mcqs_gemini_router
 
 from routes.v2.pdf_chat_model import modelpdfchat
 
 from routes.v2.pdf_summary_model import pdfsummarymodel
+
+from routes.v2.flashcard import flashcard
+from routes.v2.flashcard_citation import flashcardWithcitation 
+
+
+
 from routes.v2.mcqs import mcqs
 from routes.v2.quiz_model import quiz_model_router
+from routes.v2.insight_generation import insight_router
 import os
 
 
@@ -67,9 +71,6 @@ app.include_router(deletepdf,prefix="/deletepdf", tags=["pdf"])
 app.include_router(pdfcompare,prefix="/ppdfcomparison", tags=["pdf comparison"])
 app.include_router(lit_review_router,prefix="/lit-review", tags=["Literature Review"])
 app.include_router(quiz_router,prefix="/v1/quiz", tags=["Quiz"])
-app.include_router(flashcard_citation_router,prefix="/flashcardwithcitation", tags=["Flashcards"])
-app.include_router(insight_router,prefix="/insight/v2", tags=["Insights"])
-app.include_router(mcqs_gemini_router,prefix="/mcqgeneration", tags=["MCQ Gemini"])
 
 #version 2 with model implementation
 
@@ -79,8 +80,10 @@ app.include_router(pdfsummarymodel,prefix="/modelpdfsummary", tags=["model"])
 app.include_router(quiz_model_router,prefix="/v2/quiz", tags=["model"])
 
 
-# Old model-based MCQ generation (replaced by Gemini-based version above)
-# app.include_router(mcqs,prefix="/mcqgeneration", tags=["model"])
+app.include_router(mcqs,prefix="/mcqgeneration", tags=["model"])
+app.include_router(flashcard,prefix="/flashcard", tags=["model"])
+app.include_router(flashcardWithcitation,prefix="/flashcardwithcitation", tags=["model"])
+app.include_router(insight_router, prefix="/insight/v2", tags=["insight"])
 
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
 

@@ -4,3 +4,6 @@
 model/*.gguf
 #ingore the virtual environment files
 venv/
+# Python
+__pycache__/
+*.pyc
