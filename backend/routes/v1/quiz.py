@@ -5,6 +5,9 @@ from config.db import quizconn
 from datetime import datetime
 from bson import ObjectId
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 quiz_router = APIRouter()
 
@@ -49,8 +52,9 @@ async def generate_quiz(
     if not context or len(context.strip()) < 100:
         raise HTTPException(status_code=400, detail="Insufficient content to generate a quiz")
 
-    # Limit context size for Gemini if necessary
-    truncated_context = context[:20000] 
+    # Limit context size for Groq if necessary
+    truncated_context = context[:20000]
+    logger.info(f"Generating quiz from {document_type} (truncated to 20000 chars)")
 
     quiz_data = await generate_quiz_content(truncated_context, document_type)
     

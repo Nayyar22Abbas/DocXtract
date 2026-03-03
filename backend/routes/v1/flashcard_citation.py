@@ -1,11 +1,17 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 from Services.pdfsummary import extract_text_from_pdf
+from Services.groq_service import generate_flashcards as groq_generate_flashcards
 from datetime import datetime
-import google.generativeai as genai
 import os
 import json
-import re
 import tempfile
+import asyncio
+import logging
+from functools import partial
+from concurrent.futures import ThreadPoolExecutor
+
+logger = logging.getLogger(__name__)
+executor = ThreadPoolExecutor(max_workers=4)
 
 flashcard_citation_router = APIRouter()
 
@@ -15,7 +21,7 @@ async def generate_flashcards_with_citation(
     max_cards: int = Form(default=10)
 ):
     """
-    Generate flashcards with source citations from a PDF using Gemini.
+    Generate flashcards with source citations from a PDF using Groq.
     Each flashcard includes the exact text from the PDF that supports the answer.
     """
     
@@ -34,60 +40,26 @@ async def generate_flashcards_with_citation(
         if not pdf_text or len(pdf_text.strip()) < 100:
             raise HTTPException(status_code=400, detail="Could not extract sufficient text from PDF")
         
-        # Truncate for Gemini context limit
-        truncated_text = pdf_text[:25000]
-        
-        # Generate flashcards using Gemini
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        
-        prompt = f"""
-You are an expert educational content creator. Generate {max_cards} flashcards from the following document.
-
-RULES:
-1. Each flashcard must have a clear question and concise answer
-2. Include the EXACT source text from the document that supports the answer
-3. Assign a difficulty level (Easy, Medium, Hard)
-4. Questions should test understanding, not just recall
-5. Source text must be a direct quote from the document
-
-OUTPUT FORMAT (STRICT JSON):
-{{
-  "flashcards": [
-    {{
-      "question": "Clear, specific question",
-      "answer": "Concise, accurate answer",
-      "difficulty": "Easy | Medium | Hard",
-      "source_text": "Exact quote from the document supporting this answer"
-    }}
-  ]
-}}
-
-DOCUMENT CONTENT:
-{truncated_text}
-"""
-        
-        response = model.generate_content(prompt)
-        text = response.text
-        
-        # Extract JSON from response
-        match = re.search(r"\{.*\}", text, re.DOTALL)
-        if not match:
-            raise HTTPException(status_code=500, detail="Failed to parse flashcard response")
-        
-        result = json.loads(match.group())
-        flashcards = result.get("flashcards", [])
+        # Generate flashcards using Groq (run in executor to avoid blocking)
+        logger.info(f"Generating flashcards from PDF: {file.filename}")
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            executor,
+            partial(groq_generate_flashcards, text=pdf_text, num_cards=max_cards)
+        )
+        flashcards = result.get("flashcards", []) if result else []
+        logger.info(f"Generated {len(flashcards)} flashcards")
         
         return {
-            "model": "Gemini-2.5-Flash",
+            "model": "Groq-Llama",
             "total_flashcards": len(flashcards),
             "flashcards": flashcards
         }
         
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"Failed to parse flashcard JSON: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         # Clean up temp file
         if os.path.exists(pdf_path):
             os.unlink(pdf_path)
+

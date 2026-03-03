@@ -1,9 +1,16 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from Services.pdfsummary import extract_text_from_pdf
 from Services.chapterwisesum import split_into_chapters_smart
+from Services.groq_service import generate_content as groq_generate_content
 from datetime import datetime
 import os
-import google.generativeai as genai
+import asyncio
+import logging
+from functools import partial
+from concurrent.futures import ThreadPoolExecutor
+
+logger = logging.getLogger(__name__)
+executor = ThreadPoolExecutor(max_workers=4)
 
 pdfcompare = APIRouter()
 
@@ -14,7 +21,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 @pdfcompare.post("/compare-pdfs/")
 async def compare_pdfs(file1: UploadFile = File(...), file2: UploadFile = File(...), user_id: str = "ahsan"):
     """
-    Compare two PDFs using Gemini 2.5 Flash and return a smart comparison summary.
+    Compare two PDFs using Groq and return a smart comparison summary.
     """
 
     # Validate files
@@ -36,13 +43,6 @@ async def compare_pdfs(file1: UploadFile = File(...), file2: UploadFile = File(.
     text1 = extract_text_from_pdf(saved_paths[0])
     text2 = extract_text_from_pdf(saved_paths[1])
 
-    # Optional: split into chapters (if you want chapter-level comparison)
-    chapters1 = split_into_chapters_smart(text1)
-    chapters2 = split_into_chapters_smart(text2)
-
-    # Initialize Gemini model
-    model = genai.GenerativeModel(model_name="gemini-2.5-flash")  # type: ignore
-
     # Build prompt for comparison
     prompt = f"""
     You are an AI expert in comparing documents. 
@@ -57,12 +57,18 @@ async def compare_pdfs(file1: UploadFile = File(...), file2: UploadFile = File(.
     Provide the output in clear paragraphs highlighting added, removed, or modified content.
     """
 
-    # Call Gemini
+    # Call Groq
     try:
-        response = model.generate_content(prompt)
-        comparison_summary = response.text
+        logger.info(f"Comparing 2 PDFs")
+        loop = asyncio.get_event_loop()
+        comparison_summary = await loop.run_in_executor(
+            executor,
+            partial(groq_generate_content, prompt=prompt)
+        )
+        logger.info(f"Comparison completed")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gemini API error: {str(e)}")
+        logger.error(f"Groq API error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Groq API error: {str(e)}")
 
     # Return JSON
     return {
@@ -72,3 +78,4 @@ async def compare_pdfs(file1: UploadFile = File(...), file2: UploadFile = File(.
         ],
         "comparison_summary": comparison_summary
     }
+

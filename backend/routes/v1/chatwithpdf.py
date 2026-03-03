@@ -1,20 +1,26 @@
 from fastapi import APIRouter, HTTPException, Body
 from bson import ObjectId
 from Services.pdfsummary import extract_text_from_pdf
+from Services.groq_service import generate_content as groq_generate_content
 import os
-import google.generativeai as genai
 from pymongo import MongoClient
 from config.db import pdfconn
+import asyncio
+import logging
+from functools import partial
+from concurrent.futures import ThreadPoolExecutor
 
+logger = logging.getLogger(__name__)
+executor = ThreadPoolExecutor(max_workers=4)
 pdfchat = APIRouter()
 
 # MongoDB connection
 
 
 @pdfchat.post("/chat-pdf/{pdf_id}")
-def chat_with_pdf(pdf_id: str, request_body: dict = Body(...)):
+async def chat_with_pdf(pdf_id: str, request_body: dict = Body(...)):
     """
-    Chat with a specific PDF.
+    Chat with a specific PDF using Groq.
     Expects: {"question": "your question here"}
     """
     
@@ -32,11 +38,17 @@ def chat_with_pdf(pdf_id: str, request_body: dict = Body(...)):
 
    
     pdf_text = extract_text_from_pdf(file_path)
-    pdf_text = pdf_text[:15000]  
-
+    pdf_text = pdf_text[:15000]
     
-    model = genai.GenerativeModel(model_name="gemini-2.5-flash") # type: ignore
     prompt = f"You are an AI assistant. Answer the following question based on the PDF content.\n\nPDF Content:\n{pdf_text}\n\nQuestion:\n{question}"
-    response = model.generate_content(prompt)
+    
+    logger.info(f"Answering question for PDF: {pdf_id}")
+    loop = asyncio.get_event_loop()
+    answer = await loop.run_in_executor(
+        executor,
+        partial(groq_generate_content, prompt=prompt)
+    )
+    logger.info(f"Answer generated")
 
-    return {"answer": response.text}
+    return {"answer": answer}
+

@@ -1,10 +1,17 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from Services.pdfsummary import extract_text_from_pdf
 from Services.chapterwisesum import split_into_chapters_smart
+from Services.groq_service import generate_summary as groq_generate_summary
 from datetime import datetime
-import google.generativeai as genai
 import os
 from config.db import pdfconn
+import logging
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
+
+logger = logging.getLogger(__name__)
+executor = ThreadPoolExecutor(max_workers=4)
 
 pdf_summary_combined = APIRouter()
 
@@ -16,8 +23,9 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 async def summarize_pdf_combined(file: UploadFile = File(...), user_id: str = "ahsan"):
     """
     Receive a PDF, save permanently, store metadata, and generate a combined summary
-    (General Summary + Chapter-wise Summary).
+    (General Summary + Chapter-wise Summary) using Groq.
     """
+    logger.info(f"[1/7] PDF upload started for user: {user_id}, file: {file.filename}")
 
     if not file.filename.lower().endswith(".pdf"): #type: ignore
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
@@ -28,56 +36,86 @@ async def summarize_pdf_combined(file: UploadFile = File(...), user_id: str = "a
     saved_path = os.path.join(UPLOAD_DIR, f"{timestamp}_{safe_filename}")
 
     try:
+        logger.info(f"[2/7] Saving PDF to: {saved_path}")
         content = await file.read()
         with open(saved_path, "wb") as f:
             f.write(content)
+        logger.info(f"[3/7] PDF saved successfully ({len(content)} bytes)")
     except Exception as e:
+        logger.error(f"[ERROR] Failed to save file: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
 
     # 2️⃣ Store metadata in MongoDB
-    doc = {
-        "user_id": user_id,
-        "original_name": file.filename,
-        "saved_path": saved_path,
-        "upload_time": datetime.utcnow(),
-    }
-    pdfconn.insert_one(doc)
+    try:
+        doc = {
+            "user_id": user_id,
+            "original_name": file.filename,
+            "saved_path": saved_path,
+            "upload_time": datetime.utcnow(),
+        }
+        pdfconn.insert_one(doc)
+        logger.info(f"[4/7] Metadata stored in MongoDB")
+    except Exception as e:
+        logger.error(f"[ERROR] Failed to store metadata: {str(e)}")
 
     # 3️⃣ Extract text from PDF
-    pdf_text = extract_text_from_pdf(saved_path)
-    if not pdf_text:
-        raise HTTPException(status_code=400, detail="No text could be extracted from the PDF.")
+    try:
+        logger.info(f"[5/7] Extracting text from PDF...")
+        pdf_text = extract_text_from_pdf(saved_path)
+        if not pdf_text:
+            raise HTTPException(status_code=400, detail="No text could be extracted from the PDF.")
+        logger.info(f"[6/7] Text extracted successfully ({len(pdf_text)} characters)")
+    except Exception as e:
+        logger.error(f"[ERROR] Failed to extract text: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to extract text: {str(e)}")
 
-    # 4️⃣ Generate General Summary using Gemini
-    model = genai.GenerativeModel(model_name="gemini-2.5-flash") # type: ignore
-    
-    # Truncate text for general summary if too long
-    general_summary_text = pdf_text[:15000] 
-    general_prompt = f"Summarize the following PDF content in clear and concise paragraphs. Provide a comprehensive overview of the entire document:\n\n{general_summary_text}"
+    # 4️⃣ Generate General Summary using Groq
+    general_summary_text = pdf_text[:15000]
     
     try:
-        general_response = model.generate_content(general_prompt)
-        general_summary = general_response.text
+        logger.info(f"[7/7] Generating general summary (first 15000 chars)...")
+        # Run in executor to avoid blocking
+        loop = asyncio.get_event_loop()
+        general_summary = await loop.run_in_executor(
+            executor,
+            partial(groq_generate_summary, text=general_summary_text, context="Provide a comprehensive overview of the entire document", max_tokens=1500)
+        )
+        logger.info(f"[7/7] General summary generated ({len(general_summary)} chars)")
     except Exception as e:
+        logger.error(f"[ERROR] Failed to generate general summary: {str(e)}")
         general_summary = f"Error generating general summary: {str(e)}"
 
     # 5️⃣ Split into chapters and generate chapter-wise summaries
-    chapters = split_into_chapters_smart(pdf_text)
-    chapter_summaries = {}
+    try:
+        logger.info(f"[8/7] Splitting into chapters...")
+        chapters = split_into_chapters_smart(pdf_text)
+        logger.info(f"[8/7] Found {len(chapters)} chapters")
+    except Exception as e:
+        logger.error(f"[ERROR] Failed to split chapters: {str(e)}")
+        chapters = []
 
-    for title, content in chapters:
-        # Truncate per chapter if needed, though split_into_chapters_smart handles chunks
-        content_snippet = content[:15000]
-        chapter_prompt = f"Summarize the following chapter/section content in clear and concise paragraphs. Maintain the context of the overall document:\n\nSection: {title}\n\nContent: {content_snippet}"
+    chapter_summaries = {}
+    loop = asyncio.get_event_loop()
+    
+    for idx, (title, content) in enumerate(chapters):
+        content_snippet = content[:10000]
         try:
-            chapter_response = model.generate_content(chapter_prompt)
-            chapter_summaries[title] = chapter_response.text
+            logger.info(f"[9/7] Generating summary for chapter {idx+1}/{len(chapters)}: {title}")
+            chapter_summary = await loop.run_in_executor(
+                executor,
+                groq_generate_summary,
+                content_snippet,
+                f"Summarize this section: {title}. Maintain the context of the overall document.",
+                800
+            )
+            chapter_summaries[title] = chapter_summary
+            logger.info(f"[9/7] Chapter {idx+1} summary generated ({len(chapter_summary)} chars)")
         except Exception as e:
+            logger.error(f"[ERROR] Failed to summarize chapter '{title}': {str(e)}")
             chapter_summaries[title] = f"Error generating summary for this section: {str(e)}"
 
     # 6️⃣ Compile the final response string as requested
-    # "that will be a summary with heading summary and chapter-wise/section-wise summary below it with appropriate headings"
-    
+    logger.info(f"[10/7] Compiling final response...")
     combined_response_text = f"# Summary\n\n{general_summary}\n\n"
     combined_response_text += "## Chapter-wise / Section-wise Summary\n\n"
     
@@ -85,6 +123,7 @@ async def summarize_pdf_combined(file: UploadFile = File(...), user_id: str = "a
         combined_response_text += f"### {title}\n\n{summary}\n\n"
 
     # 7️⃣ Return combined result + file info
+    logger.info(f"[11/7] Request completed successfully")
     return {
         "file_info": {
             "filename": file.filename,
@@ -96,3 +135,4 @@ async def summarize_pdf_combined(file: UploadFile = File(...), user_id: str = "a
             "chapters": chapter_summaries
         }
     }
+

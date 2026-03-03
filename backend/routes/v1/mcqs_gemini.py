@@ -3,6 +3,9 @@ from Services.pdfsummary import extract_text_from_pdf
 from Services.mcq_service_gemini import generate_mcqs_gemini
 import tempfile
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 mcqs_gemini_router = APIRouter()
 
@@ -35,10 +38,11 @@ async def generate_mcqs_from_pdf_gemini(
         if not text or len(text.strip()) < 100:
             raise HTTPException(status_code=400, detail="Insufficient content in PDF to generate MCQs")
 
-        # Limit context size for Gemini (approximately 20k characters)
+        # Limit context size for Groq (approximately 20k characters)
         truncated_context = text[:20000]
+        logger.info(f"Generating {total_mcqs} MCQs (truncated to 20000 chars)")
 
-        # Generate MCQs using Gemini
+        # Generate MCQs using Groq
         mcqs_result = await generate_mcqs_gemini(truncated_context, total_mcqs)
 
         if not mcqs_result:

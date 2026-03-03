@@ -1,10 +1,17 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from Services.pdfsummary import extract_text_from_pdf
+from Services.groq_service import generate_content as groq_generate_content
 from datetime import datetime
-import google.generativeai as genai
 import os
 from typing import List
 from config.db import pdfconn
+import asyncio
+import logging
+from functools import partial
+from concurrent.futures import ThreadPoolExecutor
+
+logger = logging.getLogger(__name__)
+executor = ThreadPoolExecutor(max_workers=4)
 
 lit_review_router = APIRouter()
 
@@ -16,7 +23,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 async def generate_lit_review(files: List[UploadFile] = File(...), user_id: str = "ahsan"):
     """
     Receive multiple PDFs, save them, store metadata, and generate a synthesized literature review
-    including themes, gaps, and future work using Gemini 2.5 Flash.
+    including themes, gaps, and future work using Groq.
     """
     
     if not files:
@@ -64,9 +71,7 @@ async def generate_lit_review(files: List[UploadFile] = File(...), user_id: str 
     if not combined_text:
         raise HTTPException(status_code=400, detail="No readable text found in the uploaded PDFs.")
 
-    # 4️⃣ Generate Literature Review Synthesis using Gemini 2.5 Flash
-    model = genai.GenerativeModel(model_name="gemini-2.5-flash") # type: ignore
-    
+    # 4️⃣ Generate Literature Review Synthesis using Groq
     prompt = f"""
     You are an academic research assistant. Based on the following extracted text from multiple research papers, provide a comprehensive literature review synthesis.
     
@@ -83,36 +88,21 @@ async def generate_lit_review(files: List[UploadFile] = File(...), user_id: str 
     """
     
     try:
-        response = model.generate_content(prompt)
-        
-        # Check if the response was blocked
-        if not response.candidates or len(response.candidates) == 0:
-            # Check if there's feedback about blocking
-            if hasattr(response, 'prompt_feedback') and response.prompt_feedback:
-                if hasattr(response.prompt_feedback, 'block_reason') and response.prompt_feedback.block_reason:
-                    return {
-                        "files_processed": all_file_info,
-                        "literature_review": f"⚠️ **Content Blocked**: The Gemini API blocked this request due to safety filters. This may happen with certain document content. Please try:\n1. Using a different document\n2. Try again (sometimes it works on retry)\n\nOriginal block reason: {response.prompt_feedback.block_reason}"
-                    }
-            
-            return {
-                "files_processed": all_file_info,
-                "literature_review": "⚠️ **Error**: The API returned no response. This may be due to content safety filters or rate limiting. Please try again in a moment."
-            }
-        
-        lit_review_result = response.text
+        logger.info(f"Generating literature review from {len(all_file_info)} papers")
+        loop = asyncio.get_event_loop()
+        lit_review_result = await loop.run_in_executor(
+            executor,
+            partial(groq_generate_content, prompt=prompt, max_tokens=8000)
+        )
+        logger.info(f"Literature review generated ({len(lit_review_result)} chars)")
     except Exception as e:
         error_msg = str(e)
-        if "empty" in error_msg.lower() and "candidates" in error_msg.lower():
-            return {
-                "files_processed": all_file_info,
-                "literature_review": f"⚠️ **Content Blocked**: The Gemini API safety filters blocked this request. This may happen with certain document content. Please try:\n1. Using a different document\n2. Try generating again\n\nError details: {error_msg}"
-            }
-        
-        lit_review_result = f"⚠️ **Error generating literature review**: {error_msg}"
+        logger.error(f"Error generating literature review: {error_msg}")
+        lit_review_result = f"Error generating literature review: {error_msg}"
 
     # 5️⃣ Return result + file info
     return {
         "files_processed": all_file_info,
         "literature_review": lit_review_result
     }
+
