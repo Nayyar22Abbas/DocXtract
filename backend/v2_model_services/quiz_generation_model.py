@@ -1,4 +1,6 @@
 import os
+import json
+import re
 import google.generativeai as genai
 from v2_model_services.Pdf_plumber_text_extraction import extract_text_from_pdf
 from v2_model_services.text_chunking import chunk_text
@@ -13,7 +15,8 @@ if API_KEY:
 async def generate_quiz_mistral(pdf_path: str, document_type: str = "Research Paper"):
     """
     Generates a quiz using Gemini API based on the provided PDF.
-    Keeping function name for cross-file compatibility.
+    Function name kept for cross-file compatibility.
+    Uses RAG to retrieve context from the document.
     """
     # 1. Extract text
     text = extract_text_from_pdf(pdf_path)
@@ -88,8 +91,8 @@ CONTEXT:
             json_str = match.group()
             return json.loads(json_str)
         else:
-            print(f"Mistral response did not contain JSON: {response_text}")
+            print(f"Gemini response did not contain JSON: {response_text}")
             return None
     except Exception as e:
-        print(f"Error in generate_quiz_mistral: {e}")
+        print(f"Error in quiz generation (Gemini): {e}")
         return None

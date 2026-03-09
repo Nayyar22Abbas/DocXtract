@@ -18,7 +18,7 @@ async def generate_quiz_model(
     user_id: str = Form("ahsan")
 ):
     """
-    Generate a quiz using the local Mistral model and RAG.
+    Generate a quiz using Gemini API with RAG.
     Stores the quiz in MongoDB and returns the questions.
     """
     if not file.filename.lower().endswith(".pdf"):
@@ -40,7 +40,7 @@ async def generate_quiz_model(
     quiz_data = await generate_quiz_mistral(saved_path, document_type)
     
     if not quiz_data:
-        raise HTTPException(status_code=500, detail="Failed to generate quiz content using Mistral")
+        raise HTTPException(status_code=500, detail="Failed to generate quiz content using Gemini API")
 
     # Store in MongoDB
     quiz_record = {

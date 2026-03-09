@@ -103,10 +103,10 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <Button variant="ghost" size="sm" asChild>
+                <Button variant="ghost" size="sm" className="btn-glow-pulse" asChild>
                   <Link href="/login">Log in</Link>
                 </Button>
-                <Button size="sm" asChild>
+                <Button size="sm" className="btn-glow-pulse" asChild>
                   <Link href="/signup">Sign up</Link>
                 </Button>
               </>

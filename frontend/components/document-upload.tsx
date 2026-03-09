@@ -161,7 +161,7 @@ export function DocumentUpload({ onFileSelected, isLoading = false }: DocumentUp
               size="lg"
               onClick={handleBrowseClick}
               disabled={isLoading}
-              className="mt-4"
+              className="mt-4 btn-glow-pulse"
             >
               {isLoading ? (
                 <>
