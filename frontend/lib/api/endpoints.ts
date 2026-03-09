@@ -10,9 +10,12 @@ import { API_BASE, authHeaders, getUsername } from './auth'
 export async function summarizePdfCombined(file: File, userId?: string, signal?: AbortSignal) {
   const formData = new FormData()
   formData.append('file', file)
-  if (userId) formData.append('user_id', userId)
 
-  const response = await fetch(`${API_BASE}/summary/summarize-pdf-combined/`, {
+  const url = userId 
+    ? `${API_BASE}/summary/summarize-pdf-combined/?user_id=${encodeURIComponent(userId)}`
+    : `${API_BASE}/summary/summarize-pdf-combined/`
+
+  const response = await fetch(url, {
     method: 'POST',
     headers: authHeaders(),
     body: formData,
@@ -50,9 +53,12 @@ export async function comparePdfs(file1: File, file2: File, userId?: string, sig
   const formData = new FormData()
   formData.append('file1', file1)
   formData.append('file2', file2)
-  if (userId) formData.append('user_id', userId)
 
-  const response = await fetch(`${API_BASE}/ppdfcomparison/compare-pdfs/`, {
+  const url = userId 
+    ? `${API_BASE}/ppdfcomparison/compare-pdfs/?user_id=${encodeURIComponent(userId)}`
+    : `${API_BASE}/ppdfcomparison/compare-pdfs/`
+
+  const response = await fetch(url, {
     method: 'POST',
     headers: authHeaders(),
     body: formData,
@@ -90,9 +96,12 @@ export async function generateLiteratureReview(files: File[], userId?: string, s
   files.forEach((file) => {
     formData.append('files', file)
   })
-  if (userId) formData.append('user_id', userId)
 
-  const response = await fetch(`${API_BASE}/lit-review/generate-lit-review/`, {
+  const url = userId 
+    ? `${API_BASE}/lit-review/generate-lit-review/?user_id=${encodeURIComponent(userId)}`
+    : `${API_BASE}/lit-review/generate-lit-review/`
+
+  const response = await fetch(url, {
     method: 'POST',
     headers: authHeaders(),
     body: formData,
@@ -126,9 +135,13 @@ export async function generateQuizModel(file: File, documentType?: string, userI
   const formData = new FormData()
   formData.append('file', file)
   if (documentType) formData.append('document_type', documentType)
-  if (userId) formData.append('user_id', userId)
 
-  const response = await fetch(`${API_BASE}/v1/quiz/generate`, {
+  const params = new URLSearchParams()
+  if (userId) params.append('user_id', userId)
+  if (documentType) params.append('document_type', documentType)
+  const queryString = params.toString()
+
+  const response = await fetch(`${API_BASE}/v1/quiz/generate${queryString ? '?' + queryString : ''}`, {
     method: 'POST',
     headers: authHeaders(),
     body: formData,
@@ -399,20 +412,49 @@ export async function generateFlashcardsWithCitation(file: File, maxCards?: numb
   const formData = new FormData()
   formData.append('file', file)
   if (maxCards) formData.append('max_cards', maxCards.toString())
-
-  const response = await fetch(`${API_BASE}/flashcardwithcitation/generate-flashcards/`, {
-    method: 'POST',
-    headers: authHeaders(),
-    body: formData,
-    signal,
-  })
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.detail || 'Failed to generate flashcards with citation')
+  
+  // Get current user for tracking
+  const userId = getUsername()
+  if (userId) {
+    formData.append('user_id', userId)
   }
 
-  return response.json()
+  try {
+    console.log(`Starting flashcard generation for user: ${userId || 'anonymous'}`)
+    
+    const response = await fetch(`${API_BASE}/flashcardwithcitation/generate-flashcards/`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: formData,
+      signal,
+    })
+
+    console.log(`Flashcard API response status: ${response.status}`)
+    
+    let data
+    try {
+      data = await response.json()
+      console.log('Flashcard API response:', data)
+    } catch (parseError) {
+      console.error('Failed to parse flashcard response:', parseError)
+      const text = await response.text()
+      console.error('Raw response text:', text.substring(0, 500))
+      throw new Error('Invalid response format from flashcard API')
+    }
+
+    if (!response.ok) {
+      console.error('Flashcard API error:', data)
+      throw new Error(data?.detail || data?.message || 'Failed to generate flashcards with citation')
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error in generateFlashcardsWithCitation:', error)
+    if (error instanceof Error) {
+      throw error
+    }
+    throw new Error(String(error))
+  }
 }
 
 // Response structure:

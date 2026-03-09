@@ -124,6 +124,8 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       formData.append('file', file)
       // NOTE: Backend defines user_id as a non-form parameter, so we send it in the query string
 
+      console.log(`Starting document upload for user: ${userId}`)
+      
       const res = await fetch(`${API_BASE}/summary/summarize-pdf-combined/?user_id=${encodeURIComponent(userId)}`, {
         method: 'POST',
         headers: {
@@ -132,7 +134,16 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
         body: formData,
       })
 
-      const data = await res.json().catch(() => ({}))
+      console.log(`Upload response status: ${res.status}`)
+
+      let data
+      try {
+        data = await res.json()
+      } catch (parseError) {
+        console.error('Failed to parse response JSON:', parseError)
+        console.error('Response text:', await res.text())
+        return false
+      }
 
       if (!res.ok) {
         console.error('Failed to summarize and upload PDF:', data)
@@ -140,7 +151,8 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       }
 
       const savedPath = data?.file_info?.saved_path as string | undefined
-      const summary = data?.summary as string | undefined
+      // Try multiple possible field names for summary
+      const summary = (data?.summary || data?.combined_summary || data?.combined_response_text) as string | undefined
 
       const docs = await fetchDocumentsForUser(userId)
 
@@ -155,6 +167,9 @@ export function DocumentProvider({ children }: { children: ReactNode }) {
       return true
     } catch (error) {
       console.error('Error uploading document:', error)
+      if (error instanceof TypeError) {
+        console.error('Network/CORS error - ensure backend is running at:', API_BASE)
+      }
       return false
     }
   }

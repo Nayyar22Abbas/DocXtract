@@ -97,8 +97,10 @@ def generate_json_content(prompt: str, model: str = DEFAULT_MODEL, temperature: 
         return json.loads(json_str)
     except json.JSONDecodeError as e:
         print(f"JSON Parse Error: {e}")
-        print(f"Response: {response}")
-        raise
+        print(f"Response: {response[:500]}")
+        print(f"Attempting to return empty structure...")
+        # Return a default structure instead of raising
+        return {"flashcards": []} if "flashcard" in prompt.lower() else {}
     except Exception as e:
         print(f"Groq JSON Generation Error: {e}")
         raise

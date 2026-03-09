@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Request
 from Services.pdfsummary import extract_text_from_pdf
 from Services.chapterwisesum import split_into_chapters_smart
 from Services.groq_service import generate_summary as groq_generate_summary
@@ -20,12 +20,17 @@ UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @pdf_summary_combined.post("/summarize-pdf-combined/")
-async def summarize_pdf_combined(file: UploadFile = File(...), user_id: str = "ahsan"):
+async def summarize_pdf_combined(file: UploadFile = File(...), user_id: str = "ahsan", request: Request = None):
     """
     Receive a PDF, save permanently, store metadata, and generate a combined summary
     (General Summary + Chapter-wise Summary) using Groq.
     """
     logger.info(f"[1/7] PDF upload started for user: {user_id}, file: {file.filename}")
+    
+    # Log request details for debugging
+    if request:
+        logger.debug(f"Request method: {request.method}")
+        logger.debug(f"Request headers: {dict(request.headers)}")
 
     if not file.filename.lower().endswith(".pdf"): #type: ignore
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
@@ -129,7 +134,9 @@ async def summarize_pdf_combined(file: UploadFile = File(...), user_id: str = "a
             "filename": file.filename,
             "saved_path": saved_path,
         },
+        "summary": combined_response_text,
         "combined_summary": combined_response_text,
+        "combined_response_text": combined_response_text,
         "structured_data": {
             "general_summary": general_summary,
             "chapters": chapter_summaries
