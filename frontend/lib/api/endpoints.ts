@@ -483,6 +483,34 @@ export async function generateConceptGraph(
 //   }
 // }
 
+export async function queryConceptGraph(
+  pdfName: string,
+  query: string,
+  useApi: boolean = false,
+  signal?: AbortSignal
+) {
+  const response = await fetch(`${API_BASE}/insight/v2/concept-graph/query/`, {
+    method: 'POST',
+    headers: {
+      ...authHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      pdf_name: pdfName,
+      query: query,
+      use_api: useApi,
+    }),
+    signal,
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || 'Failed to query concept graph')
+  }
+
+  return response.json()
+}
+
 // ============================================================================
 // 12. STUDY RECOMMENDATIONS - AUTO (Uses historical data)
 // ============================================================================
