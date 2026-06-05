@@ -1,9 +1,16 @@
-from fastapi import FastAPI, Form, UploadFile, File,APIRouter
-import shutil, os
-from routes.v2.model_load import llm
+from fastapi import APIRouter, UploadFile, File, Form
+import shutil
+import os
 import pdfplumber
+import google.generativeai as genai
+from dotenv import load_dotenv
 
-flashcard=APIRouter()
+load_dotenv()
+API_KEY = os.getenv("GOOGLE_API_KEY")
+if API_KEY:
+    genai.configure(api_key=API_KEY)
+
+flashcard = APIRouter()
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -30,9 +37,14 @@ A: <concise answer>
 TEXT:
 {text}
 """
-    output = llm(prompt, max_tokens=400)
-    raw_text = output["choices"][0]["text"]  # type: ignore
-    return parse_flashcards(raw_text)
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(prompt)
+        raw_text = response.text
+        return parse_flashcards(raw_text)
+    except Exception as e:
+        print(f"Error generating flashcards: {e}")
+        return []
 
 def parse_flashcards(output):
     cards = []
@@ -76,7 +88,7 @@ async def generate_flashcards_api(file: UploadFile = File(...), max_cards: int =
     flashcards = generate_flashcards(text, max_cards=max_cards)
 
     return {
-        "model": "Mistral-7B (via llm callable)",
+        "model": "Gemini-2.5-Flash",
         "total_flashcards": len(flashcards),
         "flashcards": flashcards
     }

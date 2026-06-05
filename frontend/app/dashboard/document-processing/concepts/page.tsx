@@ -6,8 +6,9 @@ import { motion, useScroll, useSpring } from 'framer-motion'
 import { useDocuments } from '@/lib/providers/document-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, FileText, Loader2, Network, Sparkles } from 'lucide-react'
-import { generateConceptGraph, downloadPdf } from '@/lib/api/endpoints'
+import { Input } from '@/components/ui/input'
+import { ArrowLeft, FileText, Loader2, Network, Sparkles, Search, RotateCcw } from 'lucide-react'
+import { generateConceptGraph, downloadPdf, queryConceptGraph } from '@/lib/api/endpoints'
 import { getUsername } from '@/lib/api/auth'
 import ConceptGraphVisualizer from '@/components/ConceptGraphVisualizer'
 import HoverLetters from '@/components/HoverLetters'
@@ -40,7 +41,10 @@ export default function ConceptGraphPage() {
   const doc1 = documents.find(d => d.id === doc1Id)
 
   const [graphData, setGraphData] = useState<GraphData | null>(null)
+  const [originalGraphData, setOriginalGraphData] = useState<GraphData | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isQuerying, setIsQuerying] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   // Always abort pending requests on unmount
@@ -83,6 +87,7 @@ export default function ConceptGraphPage() {
 
       const result = await generateConceptGraph(file, true, 10, abortControllerRef.current.signal)
       setGraphData(result.graph)
+      setOriginalGraphData(result.graph)
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         return
@@ -90,6 +95,40 @@ export default function ConceptGraphPage() {
       setError(err instanceof Error ? err.message : 'Failed to generate concept graph')
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleQueryGraph = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!doc1 || !searchQuery.trim()) return
+
+    abortControllerRef.current = new AbortController()
+    setIsQuerying(true)
+    setError(null)
+
+    try {
+      // Pass the filename (not the id) because backend uses the filename to look up the triples
+      const result = await queryConceptGraph(
+        doc1.name || 'document.pdf',
+        searchQuery,
+        true,
+        abortControllerRef.current.signal
+      )
+      setGraphData(result.graph)
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return
+      }
+      setError(err instanceof Error ? err.message : 'Failed to query concept graph')
+    } finally {
+      setIsQuerying(false)
+    }
+  }
+
+  const handleResetGraph = () => {
+    if (originalGraphData) {
+      setGraphData(originalGraphData)
+      setSearchQuery('')
     }
   }
 
@@ -200,10 +239,50 @@ export default function ConceptGraphPage() {
                     </CardTitle>
                     <CardDescription>
                       <span className="text-sky-400 font-medium">{graphData.nodes.length}</span> concepts, <span className="text-blue-400 font-medium">{graphData.links.length}</span> relationships
+                      {searchQuery && !isQuerying && (
+                        <span className="ml-2 text-xs italic text-muted-foreground">(Filtered view)</span>
+                      )}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="border border-primary/10 rounded-xl overflow-hidden">
+                  <CardContent className="space-y-4">
+                    {/* Search / Filter Form */}
+                    <form onSubmit={handleQueryGraph} className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Ask a question to dynamically update the graph... (e.g., 'How does X relate to Y?')"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9"
+                          disabled={isQuerying}
+                        />
+                      </div>
+                      <Button type="submit" disabled={isQuerying || !searchQuery.trim()}>
+                        {isQuerying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
+                      </Button>
+                      {(searchQuery || graphData !== originalGraphData) && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleResetGraph}
+                          disabled={isQuerying}
+                          title="Reset Graph to Original"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </form>
+
+                    {/* The Graph */}
+                    <div className="border border-primary/10 rounded-xl overflow-hidden relative">
+                      {isQuerying && (
+                        <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center">
+                          <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
+                            <span className="text-sm font-medium text-slate-700">Filtering Concept Graph...</span>
+                          </div>
+                        </div>
+                      )}
                       <ConceptGraphVisualizer data={graphData} loading={false} />
                     </div>
                   </CardContent>

@@ -57,20 +57,17 @@ async def summarize_upload_pdf_model(file: UploadFile = File(...), user_id: str 
     chapters = split_into_chapters_smart(text)
     chapter_summaries = {}
     
-    # We summarize each chapter sequentially
-    # Note: For very large files, this part will be the bottleneck
     for title, content in chapters:
-        # Truncate content if too large for Mistral context, 
-        # but 6000-8000 chars is usually safe for summary.
-        chapter_content = content[:8000]
+        # Gemini handles larger content safely
         chapter_query = f"Provide a detailed summary for the section titled '{title}'."
-        summary = ask_mistral(chapter_content, chapter_query)
+        summary = ask_mistral(content, chapter_query)
         chapter_summaries[title] = summary
 
     return {
         "summary": global_summary,
         "chapter_summaries": chapter_summaries,
         "pdf_id": new_pdf_id,
+        "engine": "Gemini API",
         "file_info": {
             "filename": file.filename,
             "saved_path": saved_path

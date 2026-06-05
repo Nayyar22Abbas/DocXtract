@@ -78,14 +78,6 @@ async def generate_quiz(
     # Prepare "clean" quiz for front-end
     full_quiz = quiz_data.get("quiz", {})
     
-    # Helper to convert options dict to array
-    def options_to_list(opts):
-        if isinstance(opts, list):
-            return opts
-        if isinstance(opts, dict):
-            return [opts.get(k, "") for k in ["A", "B", "C", "D"] if k in opts]
-        return []
-    
     # We will return the quiz_id so FE can ask for solutions later.
     return {
         "quiz_id": quiz_id,
@@ -94,7 +86,7 @@ async def generate_quiz(
             "mcqs": [
                 {
                     "question": m["question"],
-                    "options": options_to_list(m["options"]),
+                    "options": m["options"],
                     "difficulty": m["difficulty"]
                 } for m in full_quiz.get("mcqs", [])
             ],
@@ -117,36 +109,14 @@ async def get_quiz_solution(quiz_id: str):
     """
     Retrieve the solution for a specific quiz.
     """
-    # Helper to convert options dict to array
-    def options_to_list(opts):
-        if isinstance(opts, list):
-            return opts
-        if isinstance(opts, dict):
-            return [opts.get(k, "") for k in ["A", "B", "C", "D"] if k in opts]
-        return []
-    
     try:
         quiz = quizconn.find_one({"_id": ObjectId(quiz_id)})
         if not quiz:
             raise HTTPException(status_code=404, detail="Quiz not found")
         
-        raw_quiz = quiz["quiz"]
-        
-        # Transform options to arrays
-        solutions = {
-            "mcqs": [
-                {
-                    **m,
-                    "options": options_to_list(m.get("options", []))
-                } for m in raw_quiz.get("mcqs", [])
-            ],
-            "short_answer": raw_quiz.get("short_answer", []),
-            "true_false": raw_quiz.get("true_false", [])
-        }
-        
         return {
             "quiz_id": quiz_id,
-            "solutions": solutions
+            "solutions": quiz["quiz"]
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
